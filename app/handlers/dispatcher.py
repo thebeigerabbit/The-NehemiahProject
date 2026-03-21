@@ -29,6 +29,6 @@ async def message_dispatcher(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     # Fallback
     await reply(update,
-        "🤔 I don't understand that message.\n\n"
+        "I don't understand that message.\n\n"
         "Type /help to see all available commands."
     )
