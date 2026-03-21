@@ -16,6 +16,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+def _safe(text: str) -> str:
+    """Make text safe for Telegram by replacing entity-triggering characters."""
+    if not text:
+        return text
+    # Replace underscores and hyphens that trigger Telegram entity detection
+    return str(text).replace('_', '-').replace('*', '-')
+
 USERNAME_RE = re.compile(r'^[a-zA-Z0-9_]{3,30}$')
 VALID_ROLES = ["USER", "PARTNER", "BOTH"]
 VALID_GENDERS = ["MALE", "FEMALE"]
@@ -35,7 +43,7 @@ async def handle_signup_step(update: Update, context: ContextTypes.DEFAULT_TYPE)
             return False
         step = ts.step
 
-    # ââ Step 1: Username ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    # ── Step 1: Username ──────────────────────────────────────────────────────
     if step == "username":
         if not USERNAME_RE.match(text):
             await reply(update,
@@ -54,7 +62,7 @@ async def handle_signup_step(update: Update, context: ContextTypes.DEFAULT_TYPE)
             upsert_temp_signup(db, telegram_id, step="role", username=text)
 
         await reply(update,
-            f"Username {text} is available!\n\n"
+            f"Username {_safe(text)} is available!\n\n"
             "Step 2 of 3 - Choose your role:\n\n"
             "USER    - You will be held accountable\n"
             "PARTNER - You hold others accountable\n"
@@ -63,7 +71,7 @@ async def handle_signup_step(update: Update, context: ContextTypes.DEFAULT_TYPE)
         )
         return True
 
-    # ââ Step 2: Role ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    # ── Step 2: Role ──────────────────────────────────────────────────────────
     if step == "role":
         role = text.upper()
         if role not in VALID_ROLES:
@@ -84,7 +92,7 @@ async def handle_signup_step(update: Update, context: ContextTypes.DEFAULT_TYPE)
         )
         return True
 
-    # ââ Step 3: Gender ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    # ── Step 3: Gender ────────────────────────────────────────────────────────
     if step == "gender":
         gender = text.upper()
         if gender not in VALID_GENDERS:
@@ -142,9 +150,9 @@ async def handle_signup_step(update: Update, context: ContextTypes.DEFAULT_TYPE)
         if role == "PARTNER":
             await reply(update,
                 "Account created successfully!\n\n"
-                f"Username: {username}\n"
+                f"Username: {_safe(username)}\n"
                 f"Role: {role}\n"
-                f"Your account ID: {user_id}\n\n"
+                f"Your account ID: {user_id.replace("-", "")}\n\n"
                 "Your account is now active as a partner.\n"
                 "Share your username and account ID with anyone who wants to add you.\n\n"
                 "Type /help to see all commands."
@@ -152,9 +160,9 @@ async def handle_signup_step(update: Update, context: ContextTypes.DEFAULT_TYPE)
         else:
             await reply(update,
                 "Account created successfully!\n\n"
-                f"Username: {username}\n"
+                f"Username: {_safe(username)}\n"
                 f"Role: {role}\n"
-                f"Your account ID: {user_id}\n\n"
+                f"Your account ID: {user_id.replace("-", "")}\n\n"
                 "Next step required:\n"
                 "You must add at least 1 accountability partner before your account is activated.\n\n"
                 "Use: /add_partner PARTNER_USERNAME PARTNER_ID\n\n"
