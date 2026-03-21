@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 @require_auth
 async def add_partner_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Usage: /add_partner <username> <partner_id>
+    Usage: /add_partner USERNAME PARTNER_ID
     """
     telegram_id = str(update.effective_user.id)
     args = context.args
@@ -28,7 +28,7 @@ async def add_partner_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
     if not args or len(args) < 2:
         await reply(update,
             " Invalid Format\n\n"
-            "Usage: /add_partner <username> <partner_id>\n\n"
+            "Usage: /add_partner USERNAME PARTNER_ID\n\n"
             "Ask your partner to share their username and account ID."
         )
         return
@@ -94,13 +94,13 @@ async def add_partner_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def accept_partner_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Usage: /accept_partner <partnership_id>
+    Usage: /accept_partner PARTNERSHIP_ID
     """
     telegram_id = str(update.effective_user.id)
     args = context.args
 
     if not args:
-        await reply(update, " Usage: /accept_partner <partnership_id>")
+        await reply(update, " Usage: /accept_partner PARTNERSHIP_ID")
         return
 
     partnership_id = args[0].strip()
@@ -179,13 +179,13 @@ async def accept_partner_handler(update: Update, context: ContextTypes.DEFAULT_T
 
 async def reject_partner_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Usage: /reject_partner <partnership_id>
+    Usage: /reject_partner PARTNERSHIP_ID
     """
     telegram_id = str(update.effective_user.id)
     args = context.args
 
     if not args:
-        await reply(update, " Usage: /reject_partner <partnership_id>")
+        await reply(update, " Usage: /reject_partner PARTNERSHIP_ID")
         return
 
     partnership_id = args[0].strip()
