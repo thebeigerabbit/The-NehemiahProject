@@ -128,7 +128,7 @@ async def daily_checkin_job():
                 # Idempotency: skip if already sent a checkin today
                 existing = get_todays_checkin(db, user.id)
                 if existing:
-                    logger.debug(f"Skipping checkin for {user.username} â already sent today")
+                    logger.debug(f"Skipping checkin for {user.username} — already sent today")
                     continue
 
                 checkin = create_checkin_record(db, user, CheckinTypeEnum.NORMAL)
@@ -146,10 +146,10 @@ async def daily_checkin_job():
                 await _bot.send_message(
                     chat_id=user.telegram_id,
                     text=(
-                        " Daily Check-In â 20:00 SAST\n\n"
+                        " Daily Check-In — 20:00 SAST\n\n"
                         "Did you struggle today?\n\n"
-                        "â¢ /yes â I had a failure (relapse)\n"
-                        "â¢ /no â I had a clean day "
+                        "• /yes — I had a failure (relapse)\n"
+                        "• /no — I had a clean day "
                     ),
                 )
             except Exception as e:
@@ -159,7 +159,7 @@ async def daily_checkin_job():
 #  Job: Random Partner Checks 
 
 async def random_partner_check_job():
-    """Randomly select 20â30% of active users and notify their partners."""
+    """Randomly select 20–30% of active users and notify their partners."""
     global _bot
     logger.info("Running random_partner_check_job")
 
@@ -227,15 +227,15 @@ async def fire_timer(db, timer: Timer):
             await _bot.send_message(
                 chat_id=user.telegram_id,
                 text=(
-                    "â° Reminder: Daily Check-In\n\n"
+                    "⏰ Reminder: Daily Check-In\n\n"
                     "Please respond to your check-in:\n"
-                    "â¢ /yes â I had a failure\n"
-                    "â¢ /no â Clean day \n\n"
+                    "• /yes — I had a failure\n"
+                    "• /no — Clean day \n\n"
                     "You have ~110 minutes before your partners are notified."
                 ),
             )
 
-    #  Checkin Timeout â notify partners 
+    #  Checkin Timeout → notify partners 
     elif ttype == "checkin_timeout":
         checkin_id = payload.get("checkin_id")
         checkin = db.query(Checkin).filter_by(id=checkin_id).first()
@@ -255,7 +255,7 @@ async def fire_timer(db, timer: Timer):
                 ),
             )
 
-    #  Reflection Timeout â notify partners 
+    #  Reflection Timeout → notify partners 
     elif ttype == "reflection_timeout":
         state = db.query(UserState).filter_by(user_id=user.id).first()
         if state and state.pending_action == "PENDING_REFLECTION":
@@ -344,8 +344,8 @@ async def _recover_user(db, user: User, now: datetime):
                     "You missed last night's check-in.\n"
                     "Your partners were notified.\n\n"
                     "Please respond now:\n"
-                    "â¢ /yes â I had a failure\n"
-                    "â¢ /no â Clean day"
+                    "• /yes — I had a failure\n"
+                    "• /no — Clean day"
                 ),
             )
         except Exception as e:
