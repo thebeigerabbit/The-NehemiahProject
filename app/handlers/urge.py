@@ -35,7 +35,7 @@ async def urge_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not reason:
         await reply(update,
             " Invalid Format\n\n"
-            "Usage: /urge reason: YOUR_REASON\n\n"
+            "Usage: /urge reason: your reason here\n\n"
             "Example:\n"
             "/urge reason: Feeling very stressed after a difficult day at work\n\n"
             "Minimum 10 characters required."
