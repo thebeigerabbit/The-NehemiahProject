@@ -1,0 +1,6 @@
+# Fallback config if Railway switches back to Nixpacks builder
+[phases.setup]
+nixPkgs = ["python311", "python311Packages.pip"]
+
+[start]
+cmd = "alembic upgrade head && python main.py"
