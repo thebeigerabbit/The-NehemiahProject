@@ -146,13 +146,14 @@ async def handle_signup_step(update: Update, context: ContextTypes.DEFAULT_TYPE)
         role = result["role"]
         username = result["username"]
         user_id = result["user_id"]
+        display_id = user_id.replace("-", "")
 
         if role == "PARTNER":
             await reply(update,
                 "Account created successfully!\n\n"
                 f"Username: {_safe(username)}\n"
                 f"Role: {role}\n"
-                f"Your account ID: {user_id.replace(chr(45), "")}\n\n"
+                f"Your account ID: {display_id}\n\n"
                 "Your account is now active as a partner.\n"
                 "Share your username and account ID with anyone who wants to add you.\n\n"
                 "Type /help to see all commands."
@@ -162,7 +163,7 @@ async def handle_signup_step(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 "Account created successfully!\n\n"
                 f"Username: {_safe(username)}\n"
                 f"Role: {role}\n"
-                f"Your account ID: {user_id.replace(chr(45), "")}\n\n"
+                f"Your account ID: {display_id}\n\n"
                 "Next step required:\n"
                 "You must add at least 1 accountability partner before your account is activated.\n\n"
                 "Use: /add_partner PARTNER_USERNAME PARTNER_ID\n\n"
