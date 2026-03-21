@@ -157,7 +157,7 @@ async def handle_signup_step(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 f"Your account ID: {user_id}\n\n"
                 "Next step required:\n"
                 "You must add at least 1 accountability partner before your account is activated.\n\n"
-                "Use: /add_partner <partner_username> <partner_id>\n\n"
+                "Use: /add_partner PARTNER_USERNAME PARTNER_ID\n\n"
                 "Ask your partner to share their username and account ID with you."
             )
         return True
