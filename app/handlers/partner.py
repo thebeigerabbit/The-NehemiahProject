@@ -61,12 +61,12 @@ async def add_partner_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
             if p.status == PartnershipStatusEnum.ACCEPTED:
                 await reply(update, f" You are already partnered with {partner.username}.")
             elif p.status == PartnershipStatusEnum.PENDING:
-                await reply(update, f"â³ A partnership request with {partner.username} is already pending.")
+                await reply(update, f"⏳ A partnership request with {partner.username} is already pending.")
             else:
-                await reply(update, f"â¹ A previous request with {partner.username} was rejected. Contact them directly.")
+                await reply(update, f"ℹ A previous request with {partner.username} was rejected. Contact them directly.")
             return
 
-        # Gender check â defer final check to acceptance, but warn upfront
+        # Gender check — defer final check to acceptance, but warn upfront
         if user.gender != partner.gender:
             await reply(update,
                 f" Gender Mismatch\n\n"
@@ -133,7 +133,7 @@ async def accept_partner_handler(update: Update, context: ContextTypes.DEFAULT_T
         if requester.gender != user.gender:
             reject_partnership(db, p)
             await reply(update,
-                f" Gender Mismatch â Request Rejected\n\n"
+                f" Gender Mismatch — Request Rejected\n\n"
                 f"Same-gender accountability is required.\n"
                 f"Your gender: {user.gender.value}\n"
                 f"Requester's gender: {requester.gender.value}\n\n"
@@ -143,7 +143,7 @@ async def accept_partner_handler(update: Update, context: ContextTypes.DEFAULT_T
                 await update.get_bot().send_message(
                     chat_id=requester.telegram_id,
                     text=(
-                        f" Partnership Rejected â Gender Mismatch\n\n"
+                        f" Partnership Rejected — Gender Mismatch\n\n"
                         f"{user.username} could not accept your request due to a gender mismatch."
                     ),
                 )
