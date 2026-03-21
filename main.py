@@ -7,6 +7,7 @@ import sys
 import os
 
 from telegram import Update
+from telegram.ext import Defaults
 from telegram.ext import (
     Application, CommandHandler, MessageHandler,
     CallbackQueryHandler, filters,
@@ -36,7 +37,10 @@ logger = logging.getLogger(__name__)
 
 
 def build_application() -> Application:
-    app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+    # Set defaults: no parse_mode so underscores/asterisks in usernames
+    # are never misinterpreted as Markdown entities
+    defaults = Defaults(parse_mode=None)
+    app = Application.builder().token(TELEGRAM_BOT_TOKEN).defaults(defaults).build()
 
     # ── Auth commands ─────────────────────────────────────────────────────────
     app.add_handler(CommandHandler("start", start_handler))
