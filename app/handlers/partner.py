@@ -27,8 +27,8 @@ async def add_partner_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     if not args or len(args) < 2:
         await reply(update,
-            " *Invalid Format*\n\n"
-            "Usage: `/add_partner <username> <partner_id>`\n\n"
+            " Invalid Format\n\n"
+            "Usage: /add_partner <username> <partner_id>\n\n"
             "Ask your partner to share their username and account ID."
         )
         return
@@ -42,7 +42,7 @@ async def add_partner_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         # Validate partner exists
         partner = get_user_by_username(db, partner_username)
         if not partner:
-            await reply(update, f" No user found with username `{partner_username}`.")
+            await reply(update, f"No user found with username: {partner_username}")
             return
 
         if partner.id != partner_id_input:
@@ -59,20 +59,20 @@ async def add_partner_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         if existing or existing_rev:
             p = existing or existing_rev
             if p.status == PartnershipStatusEnum.ACCEPTED:
-                await reply(update, f" You are already partnered with *{partner.username}*.")
+                await reply(update, f" You are already partnered with {partner.username}.")
             elif p.status == PartnershipStatusEnum.PENDING:
-                await reply(update, f"â³ A partnership request with *{partner.username}* is already pending.")
+                await reply(update, f"â³ A partnership request with {partner.username} is already pending.")
             else:
-                await reply(update, f"â¹ A previous request with *{partner.username}* was rejected. Contact them directly.")
+                await reply(update, f"â¹ A previous request with {partner.username} was rejected. Contact them directly.")
             return
 
         # Gender check â defer final check to acceptance, but warn upfront
         if user.gender != partner.gender:
             await reply(update,
-                f" *Gender Mismatch*\n\n"
+                f" Gender Mismatch\n\n"
                 f"Same-gender accountability is required.\n"
-                f"Your gender: *{user.gender.value}*\n"
-                f"Partner's gender: *{partner.gender.value}*\n\n"
+                f"Your gender: {user.gender.value}\n"
+                f"Partner's gender: {partner.gender.value}\n\n"
                 f"You cannot partner with this user."
             )
             return
@@ -86,8 +86,8 @@ async def add_partner_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         )
 
     await reply(update,
-        f" *Partnership Request Sent!*\n\n"
-        f"A request has been sent to *{partner.username}*.\n"
+        f" Partnership Request Sent!\n\n"
+        f"A request has been sent to {partner.username}.\n"
         f"They must accept and confirm gender compatibility."
     )
 
@@ -100,7 +100,7 @@ async def accept_partner_handler(update: Update, context: ContextTypes.DEFAULT_T
     args = context.args
 
     if not args:
-        await reply(update, " Usage: `/accept_partner <partnership_id>`")
+        await reply(update, " Usage: /accept_partner <partnership_id>")
         return
 
     partnership_id = args[0].strip()
@@ -121,7 +121,7 @@ async def accept_partner_handler(update: Update, context: ContextTypes.DEFAULT_T
             return
 
         if p.status != PartnershipStatusEnum.PENDING:
-            await reply(update, f"â¹ This request has already been `{p.status.value}`.")
+            await reply(update, f"This request has already been {p.status.value}")
             return
 
         requester = get_user_by_id(db, p.user_id)
@@ -133,18 +133,18 @@ async def accept_partner_handler(update: Update, context: ContextTypes.DEFAULT_T
         if requester.gender != user.gender:
             reject_partnership(db, p)
             await reply(update,
-                f" *Gender Mismatch â Request Rejected*\n\n"
+                f" Gender Mismatch â Request Rejected\n\n"
                 f"Same-gender accountability is required.\n"
-                f"Your gender: *{user.gender.value}*\n"
-                f"Requester's gender: *{requester.gender.value}*\n\n"
+                f"Your gender: {user.gender.value}\n"
+                f"Requester's gender: {requester.gender.value}\n\n"
                 f"This partnership cannot be formed."
             )
             try:
                 await update.get_bot().send_message(
                     chat_id=requester.telegram_id,
                     text=(
-                        f" *Partnership Rejected â Gender Mismatch*\n\n"
-                        f"*{user.username}* could not accept your request due to a gender mismatch."
+                        f" Partnership Rejected â Gender Mismatch\n\n"
+                        f"{user.username} could not accept your request due to a gender mismatch."
                     ),
                 )
             except Exception:
@@ -161,9 +161,9 @@ async def accept_partner_handler(update: Update, context: ContextTypes.DEFAULT_T
                     await update.get_bot().send_message(
                         chat_id=requester.telegram_id,
                         text=(
-                            f" *Account Activated!*\n\n"
-                            f"*{user.username}* has accepted your partnership request.\n"
-                            f"Your account is now active. Daily check-ins begin at *20:00 SAST*.\n\n"
+                            f" Account Activated!\n\n"
+                            f"{user.username} has accepted your partnership request.\n"
+                            f"Your account is now active. Daily check-ins begin at 20:00 SAST.\n\n"
                             f"Type /help for all commands."
                         ),
                     )
@@ -171,8 +171,8 @@ async def accept_partner_handler(update: Update, context: ContextTypes.DEFAULT_T
                     pass
 
         await reply(update,
-            f" *Partnership Accepted!*\n\n"
-            f"You are now the accountability partner of *{requester.username}*.\n"
+            f" Partnership Accepted!\n\n"
+            f"You are now the accountability partner of {requester.username}.\n"
             f"You will be notified of their check-ins, failures, and urges."
         )
 
@@ -185,7 +185,7 @@ async def reject_partner_handler(update: Update, context: ContextTypes.DEFAULT_T
     args = context.args
 
     if not args:
-        await reply(update, " Usage: `/reject_partner <partnership_id>`")
+        await reply(update, " Usage: /reject_partner <partnership_id>")
         return
 
     partnership_id = args[0].strip()
@@ -206,7 +206,7 @@ async def reject_partner_handler(update: Update, context: ContextTypes.DEFAULT_T
             return
 
         if p.status != PartnershipStatusEnum.PENDING:
-            await reply(update, f"â¹ This request has already been `{p.status.value}`.")
+            await reply(update, f"This request has already been {p.status.value}")
             return
 
         requester = get_user_by_id(db, p.user_id)
@@ -217,8 +217,8 @@ async def reject_partner_handler(update: Update, context: ContextTypes.DEFAULT_T
                 await update.get_bot().send_message(
                     chat_id=requester.telegram_id,
                     text=(
-                        f" *Partnership Request Rejected*\n\n"
-                        f"*{user.username}* has declined your partnership request."
+                        f" Partnership Request Rejected\n\n"
+                        f"{user.username} has declined your partnership request."
                     ),
                 )
             except Exception:
