@@ -35,7 +35,7 @@ async def urge_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not reason:
         await reply(update,
             " Invalid Format\n\n"
-            "Usage: /urge reason: <your reason>\n\n"
+            "Usage: /urge reason: YOUR_REASON\n\n"
             "Example:\n"
             "/urge reason: Feeling very stressed after a difficult day at work\n\n"
             "Minimum 10 characters required."
@@ -83,7 +83,7 @@ async def urge_followup_callback(update: Update, context: ContextTypes.DEFAULT_T
     query = update.callback_query
     await query.answer()
 
-    data = query.data  # format: urge_followup:<urge_id>:<resolution>
+    data = query.data  # format: urge_followup:(urge_id):(resolution)
     parts = data.split(":")
     if len(parts) != 3 or parts[0] != "urge_followup":
         return
