@@ -5,10 +5,10 @@ from sqlalchemy import (
     ForeignKey, Enum, JSON, create_engine
 )
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import declarativeBase, relationship
+from sqlalchemy.orm import declarative_base, relationship
 import enum
 
-Base = declarativeBase()
+Base = declarative_base()
 
 
 def gen_uuid():
