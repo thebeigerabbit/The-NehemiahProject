@@ -67,7 +67,7 @@ def init_scheduler(bot) -> AsyncIOScheduler:
     _bot = bot
     scheduler = get_scheduler()
 
-    # ââ Daily check-in at 20:00 SAST âââââââââââââââââââââââââââââââââââââââââ
+    #  Daily check-in at 20:00 SAST 
     scheduler.add_job(
         daily_checkin_job,
         trigger="cron",
@@ -78,7 +78,7 @@ def init_scheduler(bot) -> AsyncIOScheduler:
         replace_existing=True,
     )
 
-    # ââ Random partner checks: daily at 20:05 âââââââââââââââââââââââââââââââââ
+    #  Random partner checks: daily at 20:05 
     scheduler.add_job(
         random_partner_check_job,
         trigger="cron",
@@ -89,7 +89,7 @@ def init_scheduler(bot) -> AsyncIOScheduler:
         replace_existing=True,
     )
 
-    # ââ Recovery job: every hour ââââââââââââââââââââââââââââââââââââââââââââââ
+    #  Recovery job: every hour 
     scheduler.add_job(
         recovery_job,
         trigger="interval",
@@ -98,7 +98,7 @@ def init_scheduler(bot) -> AsyncIOScheduler:
         replace_existing=True,
     )
 
-    # ââ Timer processor: every minute âââââââââââââââââââââââââââââââââââââââââ
+    #  Timer processor: every minute 
     scheduler.add_job(
         process_timers_job,
         trigger="interval",
@@ -112,7 +112,7 @@ def init_scheduler(bot) -> AsyncIOScheduler:
     return scheduler
 
 
-# âââ Job: Daily Check-In ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+#  Job: Daily Check-In 
 
 async def daily_checkin_job():
     """Send daily check-in to all active USER/BOTH accounts."""
@@ -146,18 +146,17 @@ async def daily_checkin_job():
                 await _bot.send_message(
                     chat_id=user.telegram_id,
                     text=(
-                        "ð *Daily Check-In â 20:00 SAST*\n\n"
+                        " *Daily Check-In â 20:00 SAST*\n\n"
                         "Did you struggle today?\n\n"
                         "â¢ /yes â I had a failure (relapse)\n"
-                        "â¢ /no â I had a clean day â"
+                        "â¢ /no â I had a clean day "
                     ),
-                    parse_mode="Markdown",
                 )
             except Exception as e:
                 logger.error(f"Error sending checkin to {user.username}: {e}")
 
 
-# âââ Job: Random Partner Checks âââââââââââââââââââââââââââââââââââââââââââââââ
+#  Job: Random Partner Checks 
 
 async def random_partner_check_job():
     """Randomly select 20â30% of active users and notify their partners."""
@@ -189,7 +188,7 @@ async def random_partner_check_job():
                 logger.error(f"Error in partner check for {user.username}: {e}")
 
 
-# âââ Job: Process Timers ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+#  Job: Process Timers 
 
 async def process_timers_job():
     """Fire any due, unfired timers."""
@@ -220,7 +219,7 @@ async def fire_timer(db, timer: Timer):
     ttype = timer.type
     payload = timer.payload or {}
 
-    # ââ Checkin Reminder ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    #  Checkin Reminder 
     if ttype == "checkin_reminder":
         checkin_id = payload.get("checkin_id")
         checkin = db.query(Checkin).filter_by(id=checkin_id).first()
@@ -231,13 +230,12 @@ async def fire_timer(db, timer: Timer):
                     "â° *Reminder: Daily Check-In*\n\n"
                     "Please respond to your check-in:\n"
                     "â¢ /yes â I had a failure\n"
-                    "â¢ /no â Clean day â\n\n"
+                    "â¢ /no â Clean day \n\n"
                     "You have ~110 minutes before your partners are notified."
                 ),
-                parse_mode="Markdown",
             )
 
-    # ââ Checkin Timeout â notify partners âââââââââââââââââââââââââââââââââââââ
+    #  Checkin Timeout â notify partners 
     elif ttype == "checkin_timeout":
         checkin_id = payload.get("checkin_id")
         checkin = db.query(Checkin).filter_by(id=checkin_id).first()
@@ -251,14 +249,13 @@ async def fire_timer(db, timer: Timer):
             await _bot.send_message(
                 chat_id=user.telegram_id,
                 text=(
-                    "â ï¸ *Check-In Timeout*\n\n"
+                    " *Check-In Timeout*\n\n"
                     "You did not respond to tonight's check-in within 2 hours.\n"
                     "Your accountability partners have been notified."
                 ),
-                parse_mode="Markdown",
             )
 
-    # ââ Reflection Timeout â notify partners ââââââââââââââââââââââââââââââââââ
+    #  Reflection Timeout â notify partners 
     elif ttype == "reflection_timeout":
         state = db.query(UserState).filter_by(user_id=user.id).first()
         if state and state.pending_action == "PENDING_REFLECTION":
@@ -268,23 +265,22 @@ async def fire_timer(db, timer: Timer):
             await _bot.send_message(
                 chat_id=user.telegram_id,
                 text=(
-                    "â ï¸ *Reflection Overdue*\n\n"
+                    " *Reflection Overdue*\n\n"
                     "You haven't submitted your reflection yet.\n"
                     "Your partners have been notified.\n\n"
                     "Please submit it now:\n"
                     "```\n/reflect\ntrigger: ...\nfailure: ...\nprevention: ...\n```"
                 ),
-                parse_mode="Markdown",
             )
 
-    # ââ Urge Follow-Up ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    #  Urge Follow-Up 
     elif ttype == "urge_followup":
         urge_id = payload.get("urge_id")
         from app.handlers.urge import send_urge_followup
         await send_urge_followup(_bot, user.telegram_id, urge_id, user.username)
 
 
-# âââ Job: Recovery ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+#  Job: Recovery 
 
 async def recovery_job():
     """
@@ -308,7 +304,7 @@ async def recovery_job():
 async def _recover_user(db, user: User, now: datetime):
     global _bot
 
-    # ââ Detect checkin from last 26h with no response and no timeout timer ââââ
+    #  Detect checkin from last 26h with no response and no timeout timer 
     cutoff = now - timedelta(hours=26)
     missed_checkins = db.query(Checkin).filter(
         Checkin.user_id == user.id,
@@ -344,19 +340,18 @@ async def _recover_user(db, user: User, now: datetime):
             await _bot.send_message(
                 chat_id=user.telegram_id,
                 text=(
-                    "ð *Missed Check-In Recovery*\n\n"
+                    " *Missed Check-In Recovery*\n\n"
                     "You missed last night's check-in.\n"
                     "Your partners were notified.\n\n"
                     "Please respond now:\n"
                     "â¢ /yes â I had a failure\n"
                     "â¢ /no â Clean day"
                 ),
-                parse_mode="Markdown",
             )
         except Exception as e:
             logger.error(f"Failed to send recovery checkin to {user.username}: {e}")
 
-    # ââ Detect pending reflections with expired timer that wasn't re-prompted ââ
+    #  Detect pending reflections with expired timer that wasn't re-prompted 
     state = db.query(UserState).filter_by(user_id=user.id).first()
     if state and state.pending_action == "PENDING_REFLECTION":
         expired_timers = db.query(Timer).filter(
@@ -378,13 +373,12 @@ async def _recover_user(db, user: User, now: datetime):
                 await _bot.send_message(
                     chat_id=user.telegram_id,
                     text=(
-                        "ð *Reflection Still Pending*\n\n"
+                        " *Reflection Still Pending*\n\n"
                         "You still haven't completed your reflection.\n"
                         "Your partners have been notified again.\n\n"
                         "Please submit:\n"
                         "```\n/reflect\ntrigger: ...\nfailure: ...\nprevention: ...\n```"
                     ),
-                    parse_mode="Markdown",
                 )
             except Exception as e:
                 logger.error(f"Failed to re-prompt reflection for {user.username}: {e}")
