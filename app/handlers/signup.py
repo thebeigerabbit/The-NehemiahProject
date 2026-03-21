@@ -54,7 +54,7 @@ async def handle_signup_step(update: Update, context: ContextTypes.DEFAULT_TYPE)
             upsert_temp_signup(db, telegram_id, step="role", username=text)
 
         await reply(update,
-            f"Username '{text}' is available!\n\n"
+            f"Username {text} is available!\n\n"
             "Step 2 of 3 - Choose your role:\n\n"
             "USER    - You will be held accountable\n"
             "PARTNER - You hold others accountable\n"
@@ -109,7 +109,7 @@ async def handle_signup_step(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 saved_username = ts.username
                 delete_temp_signup(db, telegram_id)
                 upsert_temp_signup(db, telegram_id, step="username")
-                result = {"error": f"Sorry, the username '{saved_username}' was just taken. Please send a new username:"}
+                result = {"error": f"Sorry, the username {saved_username} was just taken. Please send a new username:"}
             else:
                 user = create_user(
                     db,
