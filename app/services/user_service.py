@@ -46,7 +46,7 @@ def get_user_by_username(db: Session, username: str) -> User | None:
 
 
 def get_user_by_id(db: Session, user_id: str) -> User | None:
-    return db.query(User).filter_by(id=user_id).first()
+    return db.query(User).filter(User.id == str(user_id)).first()
 
 
 def username_exists(db: Session, username: str) -> bool:
@@ -81,14 +81,17 @@ def create_user(
 
 
 def activate_user(db: Session, user: User):
-    user.is_active = True
+    # Use raw SQL to avoid SQLAlchemy casting VARCHAR id as UUID type
+    from sqlalchemy import text
+    db.execute(text("UPDATE users SET is_active = true WHERE id = :uid"), {"uid": str(user.id)})
     db.flush()
+    user.is_active = True  # keep in-memory object in sync
 
 
 # ─── UserState helpers ────────────────────────────────────────────────────────
 
 def get_user_state(db: Session, user_id: str) -> UserState | None:
-    return db.query(UserState).filter_by(user_id=user_id).first()
+    return db.query(UserState).filter(UserState.user_id == str(user_id)).first()
 
 
 def set_user_state(
