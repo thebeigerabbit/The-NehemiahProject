@@ -2,9 +2,8 @@ import uuid
 from datetime import datetime
 from sqlalchemy import (
     Column, String, Boolean, Integer, DateTime, Text,
-    ForeignKey, Enum, JSON, create_engine
+    ForeignKey, Enum, JSON
 )
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base, relationship
 import enum
 
@@ -50,7 +49,7 @@ class CheckinTypeEnum(str, enum.Enum):
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    id = Column(String(36), primary_key=True, default=gen_uuid)
     telegram_id = Column(String, unique=True, nullable=False, index=True)
     username = Column(String, unique=True, nullable=False)
     role = Column(Enum(RoleEnum), nullable=False, default=RoleEnum.USER)
@@ -84,9 +83,9 @@ class User(Base):
 class Partnership(Base):
     __tablename__ = "partnerships"
 
-    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=False)
-    partner_id = Column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=False)
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    partner_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     status = Column(Enum(PartnershipStatusEnum), default=PartnershipStatusEnum.PENDING)
     created_at = Column(DateTime, default=datetime.utcnow)
     accepted_at = Column(DateTime, nullable=True)
@@ -98,8 +97,8 @@ class Partnership(Base):
 class Checkin(Base):
     __tablename__ = "checkins"
 
-    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=False)
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     date = Column(DateTime, nullable=False)
     response = Column(Enum(CheckinResponseEnum), nullable=True)
     responded_at = Column(DateTime, nullable=True)
@@ -112,13 +111,13 @@ class Checkin(Base):
 class Reflection(Base):
     __tablename__ = "reflections"
 
-    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=False)
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     trigger = Column(Text, nullable=False)
     failure_description = Column(Text, nullable=False)
     preventative_action = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
-    checkin_id = Column(UUID(as_uuid=False), ForeignKey("checkins.id"), nullable=True)
+    checkin_id = Column(String(36), ForeignKey("checkins.id"), nullable=True)
 
     user = relationship("User", back_populates="reflections")
 
@@ -126,8 +125,8 @@ class Reflection(Base):
 class Urge(Base):
     __tablename__ = "urges"
 
-    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=False)
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     reason = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     resolved = Column(Boolean, default=False)
@@ -140,7 +139,7 @@ class Urge(Base):
 class UserState(Base):
     __tablename__ = "user_states"
 
-    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id"), primary_key=True)
+    user_id = Column(String(36), ForeignKey("users.id"), primary_key=True)
     current_flow = Column(String, nullable=True)   # e.g. 'signup', 'login', 'partner_link'
     pending_action = Column(String, nullable=True)  # e.g. 'PENDING_REFLECTION'
     flow_data = Column(JSON, nullable=True)         # arbitrary flow state
@@ -153,8 +152,8 @@ class UserState(Base):
 class Timer(Base):
     __tablename__ = "timers"
 
-    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=False)
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     type = Column(String, nullable=False)   # e.g. 'checkin_reminder', 'checkin_timeout', 'reflection_timeout', 'urge_followup'
     expires_at = Column(DateTime, nullable=False)
     payload = Column(JSON, nullable=True)
@@ -167,8 +166,8 @@ class Timer(Base):
 class Event(Base):
     __tablename__ = "events"
 
-    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=False)
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     type = Column(String, nullable=False)
     payload = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -179,8 +178,8 @@ class Event(Base):
 class PartnerCheck(Base):
     __tablename__ = "partner_checks"
 
-    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=False)
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     triggered_at = Column(DateTime, default=datetime.utcnow)
     acknowledged = Column(Boolean, default=False)
 
