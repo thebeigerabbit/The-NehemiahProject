@@ -34,7 +34,7 @@ async def urge_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not reason:
         await reply(update,
-            "â *Invalid Format*\n\n"
+            " *Invalid Format*\n\n"
             "Usage: `/urge reason: <your reason>`\n\n"
             "Example:\n"
             "`/urge reason: Feeling very stressed after a difficult day at work`\n\n"
@@ -44,7 +44,7 @@ async def urge_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     error = validate_urge_reason(reason)
     if error:
-        await reply(update, f"â {error}")
+        await reply(update, f" {error}")
         return
 
     with get_db() as db:
@@ -56,7 +56,7 @@ async def urge_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if recent_count >= MAX_URGES_PER_HOUR:
             await notify_partners_urge_spam(update.get_bot(), user, partners)
             await reply(update,
-                f"ð« *Urge Limit Reached*\n\n"
+                f" *Urge Limit Reached*\n\n"
                 f"You've reported {MAX_URGES_PER_HOUR}+ urges in the past hour.\n"
                 f"Your partners have been notified of this.\n\n"
                 f"Please reach out to your partner directly for support right now."
@@ -70,11 +70,11 @@ async def urge_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         urge_id = urge.id
 
     await reply(update,
-        f"ð *Urge Recorded â Help is Coming*\n\n"
+        f" *Urge Recorded â Help is Coming*\n\n"
         f"Your partners have been notified. You are not alone.\n\n"
-        f"ð¡ *Coping Strategy:*\n{strategy}\n\n"
+        f" *Coping Strategy:*\n{strategy}\n\n"
         f"â± I will check in with you in *15 minutes*.\n"
-        f"Hang in there. You can do this. ðª"
+        f"Hang in there. You can do this. "
     )
 
 
@@ -99,11 +99,11 @@ async def urge_followup_callback(update: Update, context: ContextTypes.DEFAULT_T
 
         urge = get_urge(db, urge_id)
         if not urge or urge.user_id != user.id:
-            await query.edit_message_text("â This follow-up is no longer valid.")
+            await query.edit_message_text(" This follow-up is no longer valid.")
             return
 
         if urge.resolved:
-            await query.edit_message_text("â¹ï¸ This urge has already been resolved.")
+            await query.edit_message_text("â¹ This urge has already been resolved.")
             return
 
         resolve_urge(db, urge_id, resolution)
@@ -117,11 +117,10 @@ async def urge_followup_callback(update: Update, context: ContextTypes.DEFAULT_T
             process_yes_response(db, user, checkin)
             await notify_partners_failure(query.get_bot(), user, partners)
             await query.edit_message_text(
-                "ð *Response recorded: FALLEN*\n\n"
+                " *Response recorded: FALLEN*\n\n"
                 "Your partners have been notified.\n\n"
                 "You must now complete a reflection:\n"
                 "```\n/reflect\ntrigger: ...\nfailure: ...\nprevention: ...\n```",
-                parse_mode="Markdown"
             )
 
         elif resolution == "still_tempted":
@@ -131,11 +130,10 @@ async def urge_followup_callback(update: Update, context: ContextTypes.DEFAULT_T
             await notify_partners_urge(query.get_bot(), user, partners, f"Still tempted: {urge.reason}")
             from app.utils.messages import random_coping_strategy
             await query.edit_message_text(
-                f"ðª *Still fighting â that's the spirit!*\n\n"
+                f" *Still fighting â that's the spirit!*\n\n"
                 f"Your partners have been notified again.\n\n"
-                f"ð¡ *New Strategy:* {random_coping_strategy()}\n\n"
+                f" *New Strategy:* {random_coping_strategy()}\n\n"
                 f"Another check-in will come in 15 minutes. Hold on.",
-                parse_mode="Markdown"
             )
 
         elif resolution == "not_tempted":
@@ -145,19 +143,18 @@ async def urge_followup_callback(update: Update, context: ContextTypes.DEFAULT_T
                 process_no_response(db, user, checkin)
             from app.utils.messages import random_encouragement
             await query.edit_message_text(
-                f"ð *Urge defeated!*\n\n"
+                f" *Urge defeated!*\n\n"
                 f"You overcame the temptation. That is a real victory.\n\n"
                 f"{random_encouragement()}",
-                parse_mode="Markdown"
             )
 
 
 async def send_urge_followup(bot, telegram_id: str, urge_id: str, username: str):
     """Called by the scheduler to send the 15-min follow-up message."""
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("ð I fell", callback_data=f"urge_followup:{urge_id}:fallen")],
-        [InlineKeyboardButton("ð° Still tempted", callback_data=f"urge_followup:{urge_id}:still_tempted")],
-        [InlineKeyboardButton("ðª Not tempted anymore", callback_data=f"urge_followup:{urge_id}:not_tempted")],
+        [InlineKeyboardButton(" I fell", callback_data=f"urge_followup:{urge_id}:fallen")],
+        [InlineKeyboardButton(" Still tempted", callback_data=f"urge_followup:{urge_id}:still_tempted")],
+        [InlineKeyboardButton(" Not tempted anymore", callback_data=f"urge_followup:{urge_id}:not_tempted")],
     ])
     try:
         await bot.send_message(
@@ -166,7 +163,6 @@ async def send_urge_followup(bot, telegram_id: str, urge_id: str, username: str)
                 "â° *15-Minute Follow-Up*\n\n"
                 "How are you doing right now?"
             ),
-            parse_mode="Markdown",
             reply_markup=keyboard,
         )
     except Exception as e:
