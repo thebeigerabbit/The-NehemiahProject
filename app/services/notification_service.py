@@ -42,7 +42,7 @@ async def notify_partners_urge(bot: Bot, user: User, partners: list[User], reaso
 
 async def notify_partners_no_checkin(bot: Bot, user: User, partners: list[User]):
     msg = (
-        f"â° Missed Check-In Alert\n\n"
+        f"⏰ Missed Check-In Alert\n\n"
         f"{user.username} has not responded to their daily check-in within 2 hours.\n"
         f"Please reach out to verify their status."
     )
@@ -74,7 +74,7 @@ async def notify_partners_urge_spam(bot: Bot, user: User, partners: list[User]):
     msg = (
         f" Urge Spam Alert\n\n"
         f"{user.username} has submitted more than 3 urge reports in the past hour.\n"
-        f"Please reach out â this may indicate a serious struggle."
+        f"Please reach out — this may indicate a serious struggle."
     )
     for partner in partners:
         await send_safe(bot, partner.telegram_id, msg)
