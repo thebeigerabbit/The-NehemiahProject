@@ -146,7 +146,7 @@ async def daily_checkin_job():
                 await _bot.send_message(
                     chat_id=user.telegram_id,
                     text=(
-                        " *Daily Check-In â 20:00 SAST*\n\n"
+                        " Daily Check-In â 20:00 SAST\n\n"
                         "Did you struggle today?\n\n"
                         "â¢ /yes â I had a failure (relapse)\n"
                         "â¢ /no â I had a clean day "
@@ -227,7 +227,7 @@ async def fire_timer(db, timer: Timer):
             await _bot.send_message(
                 chat_id=user.telegram_id,
                 text=(
-                    "â° *Reminder: Daily Check-In*\n\n"
+                    "â° Reminder: Daily Check-In\n\n"
                     "Please respond to your check-in:\n"
                     "â¢ /yes â I had a failure\n"
                     "â¢ /no â Clean day \n\n"
@@ -249,7 +249,7 @@ async def fire_timer(db, timer: Timer):
             await _bot.send_message(
                 chat_id=user.telegram_id,
                 text=(
-                    " *Check-In Timeout*\n\n"
+                    " Check-In Timeout\n\n"
                     "You did not respond to tonight's check-in within 2 hours.\n"
                     "Your accountability partners have been notified."
                 ),
@@ -265,7 +265,7 @@ async def fire_timer(db, timer: Timer):
             await _bot.send_message(
                 chat_id=user.telegram_id,
                 text=(
-                    " *Reflection Overdue*\n\n"
+                    " Reflection Overdue\n\n"
                     "You haven't submitted your reflection yet.\n"
                     "Your partners have been notified.\n\n"
                     "Please submit it now:\n"
@@ -340,7 +340,7 @@ async def _recover_user(db, user: User, now: datetime):
             await _bot.send_message(
                 chat_id=user.telegram_id,
                 text=(
-                    " *Missed Check-In Recovery*\n\n"
+                    " Missed Check-In Recovery\n\n"
                     "You missed last night's check-in.\n"
                     "Your partners were notified.\n\n"
                     "Please respond now:\n"
@@ -373,7 +373,7 @@ async def _recover_user(db, user: User, now: datetime):
                 await _bot.send_message(
                     chat_id=user.telegram_id,
                     text=(
-                        " *Reflection Still Pending*\n\n"
+                        " Reflection Still Pending\n\n"
                         "You still haven't completed your reflection.\n"
                         "Your partners have been notified again.\n\n"
                         "Please submit:\n"
