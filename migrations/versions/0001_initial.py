@@ -17,151 +17,157 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Enums
-    role_enum = postgresql.ENUM("USER", "PARTNER", "BOTH", name="roleenum")
-    gender_enum = postgresql.ENUM("MALE", "FEMALE", name="genderenum")
-    partnership_status_enum = postgresql.ENUM("PENDING", "ACCEPTED", "REJECTED", name="partnershipstatusenum")
-    checkin_response_enum = postgresql.ENUM("YES", "NO", name="checkinresponseenum")
-    checkin_type_enum = postgresql.ENUM("normal", "late_response", "recovered_checkin", name="checkintypeenum")
+    conn = op.get_bind()
 
-    role_enum.create(op.get_bind(), checkfirst=True)
-    gender_enum.create(op.get_bind(), checkfirst=True)
-    partnership_status_enum.create(op.get_bind(), checkfirst=True)
-    checkin_response_enum.create(op.get_bind(), checkfirst=True)
-    checkin_type_enum.create(op.get_bind(), checkfirst=True)
+    # Create enums using raw SQL with IF NOT EXISTS — fully idempotent
+    conn.execute(sa.text("CREATE TYPE IF NOT EXISTS roleenum AS ENUM ('USER', 'PARTNER', 'BOTH')"))
+    conn.execute(sa.text("CREATE TYPE IF NOT EXISTS genderenum AS ENUM ('MALE', 'FEMALE')"))
+    conn.execute(sa.text("CREATE TYPE IF NOT EXISTS partnershipstatusenum AS ENUM ('PENDING', 'ACCEPTED', 'REJECTED')"))
+    conn.execute(sa.text("CREATE TYPE IF NOT EXISTS checkinresponseenum AS ENUM ('YES', 'NO')"))
+    conn.execute(sa.text("CREATE TYPE IF NOT EXISTS checkintypeenum AS ENUM ('normal', 'late_response', 'recovered_checkin')"))
 
     # users
-    op.create_table(
-        "users",
-        sa.Column("id", sa.String(), primary_key=True),
-        sa.Column("telegram_id", sa.String(), unique=True, nullable=False),
-        sa.Column("username", sa.String(), unique=True, nullable=False),
-        sa.Column("role", sa.Enum("USER", "PARTNER", "BOTH", name="roleenum"), nullable=False),
-        sa.Column("gender", sa.Enum("MALE", "FEMALE", name="genderenum"), nullable=False),
-        sa.Column("gender_verified", sa.Boolean(), default=False),
-        sa.Column("created_at", sa.DateTime(), nullable=True),
-        sa.Column("success_streak", sa.Integer(), default=0),
-        sa.Column("total_failures", sa.Integer(), default=0),
-        sa.Column("last_failure_at", sa.DateTime(), nullable=True),
-        sa.Column("is_active", sa.Boolean(), default=False),
-    )
-    op.create_index("ix_users_telegram_id", "users", ["telegram_id"])
+    conn.execute(sa.text("""
+        CREATE TABLE IF NOT EXISTS users (
+            id VARCHAR PRIMARY KEY,
+            telegram_id VARCHAR UNIQUE NOT NULL,
+            username VARCHAR UNIQUE NOT NULL,
+            role roleenum NOT NULL,
+            gender genderenum NOT NULL,
+            gender_verified BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP,
+            success_streak INTEGER DEFAULT 0,
+            total_failures INTEGER DEFAULT 0,
+            last_failure_at TIMESTAMP,
+            is_active BOOLEAN DEFAULT FALSE
+        )
+    """))
+    conn.execute(sa.text("CREATE INDEX IF NOT EXISTS ix_users_telegram_id ON users (telegram_id)"))
 
     # temp_signups
-    op.create_table(
-        "temp_signups",
-        sa.Column("telegram_id", sa.String(), primary_key=True),
-        sa.Column("step", sa.String(), nullable=False, default="username"),
-        sa.Column("username", sa.String(), nullable=True),
-        sa.Column("role", sa.String(), nullable=True),
-        sa.Column("gender", sa.String(), nullable=True),
-        sa.Column("created_at", sa.DateTime(), nullable=True),
-    )
+    conn.execute(sa.text("""
+        CREATE TABLE IF NOT EXISTS temp_signups (
+            telegram_id VARCHAR PRIMARY KEY,
+            step VARCHAR NOT NULL DEFAULT 'username',
+            username VARCHAR,
+            role VARCHAR,
+            gender VARCHAR,
+            created_at TIMESTAMP
+        )
+    """))
 
     # partnerships
-    op.create_table(
-        "partnerships",
-        sa.Column("id", sa.String(), primary_key=True),
-        sa.Column("user_id", sa.String(), sa.ForeignKey("users.id"), nullable=False),
-        sa.Column("partner_id", sa.String(), sa.ForeignKey("users.id"), nullable=False),
-        sa.Column("status", sa.Enum("PENDING", "ACCEPTED", "REJECTED", name="partnershipstatusenum"), default="PENDING"),
-        sa.Column("created_at", sa.DateTime(), nullable=True),
-        sa.Column("accepted_at", sa.DateTime(), nullable=True),
-    )
+    conn.execute(sa.text("""
+        CREATE TABLE IF NOT EXISTS partnerships (
+            id VARCHAR PRIMARY KEY,
+            user_id VARCHAR NOT NULL REFERENCES users(id),
+            partner_id VARCHAR NOT NULL REFERENCES users(id),
+            status partnershipstatusenum DEFAULT 'PENDING',
+            created_at TIMESTAMP,
+            accepted_at TIMESTAMP
+        )
+    """))
 
     # checkins
-    op.create_table(
-        "checkins",
-        sa.Column("id", sa.String(), primary_key=True),
-        sa.Column("user_id", sa.String(), sa.ForeignKey("users.id"), nullable=False),
-        sa.Column("date", sa.DateTime(), nullable=False),
-        sa.Column("response", sa.Enum("YES", "NO", name="checkinresponseenum"), nullable=True),
-        sa.Column("responded_at", sa.DateTime(), nullable=True),
-        sa.Column("valid", sa.Boolean(), default=True),
-        sa.Column("type", sa.Enum("normal", "late_response", "recovered_checkin", name="checkintypeenum"), default="normal"),
-    )
+    conn.execute(sa.text("""
+        CREATE TABLE IF NOT EXISTS checkins (
+            id VARCHAR PRIMARY KEY,
+            user_id VARCHAR NOT NULL REFERENCES users(id),
+            date TIMESTAMP NOT NULL,
+            response checkinresponseenum,
+            responded_at TIMESTAMP,
+            valid BOOLEAN DEFAULT TRUE,
+            type checkintypeenum DEFAULT 'normal'
+        )
+    """))
 
     # reflections
-    op.create_table(
-        "reflections",
-        sa.Column("id", sa.String(), primary_key=True),
-        sa.Column("user_id", sa.String(), sa.ForeignKey("users.id"), nullable=False),
-        sa.Column("trigger", sa.Text(), nullable=False),
-        sa.Column("failure_description", sa.Text(), nullable=False),
-        sa.Column("preventative_action", sa.Text(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=True),
-        sa.Column("checkin_id", sa.String(), sa.ForeignKey("checkins.id"), nullable=True),
-    )
+    conn.execute(sa.text("""
+        CREATE TABLE IF NOT EXISTS reflections (
+            id VARCHAR PRIMARY KEY,
+            user_id VARCHAR NOT NULL REFERENCES users(id),
+            trigger TEXT NOT NULL,
+            failure_description TEXT NOT NULL,
+            preventative_action TEXT NOT NULL,
+            created_at TIMESTAMP,
+            checkin_id VARCHAR REFERENCES checkins(id)
+        )
+    """))
 
     # urges
-    op.create_table(
-        "urges",
-        sa.Column("id", sa.String(), primary_key=True),
-        sa.Column("user_id", sa.String(), sa.ForeignKey("users.id"), nullable=False),
-        sa.Column("reason", sa.Text(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=True),
-        sa.Column("resolved", sa.Boolean(), default=False),
-        sa.Column("resolution", sa.String(), nullable=True),
-        sa.Column("followup_sent", sa.Boolean(), default=False),
-    )
+    conn.execute(sa.text("""
+        CREATE TABLE IF NOT EXISTS urges (
+            id VARCHAR PRIMARY KEY,
+            user_id VARCHAR NOT NULL REFERENCES users(id),
+            reason TEXT NOT NULL,
+            created_at TIMESTAMP,
+            resolved BOOLEAN DEFAULT FALSE,
+            resolution VARCHAR,
+            followup_sent BOOLEAN DEFAULT FALSE
+        )
+    """))
 
     # user_states
-    op.create_table(
-        "user_states",
-        sa.Column("user_id", sa.String(), sa.ForeignKey("users.id"), primary_key=True),
-        sa.Column("current_flow", sa.String(), nullable=True),
-        sa.Column("pending_action", sa.String(), nullable=True),
-        sa.Column("flow_data", postgresql.JSON(), nullable=True),
-        sa.Column("expires_at", sa.DateTime(), nullable=True),
-        sa.Column("updated_at", sa.DateTime(), nullable=True),
-    )
+    conn.execute(sa.text("""
+        CREATE TABLE IF NOT EXISTS user_states (
+            user_id VARCHAR PRIMARY KEY REFERENCES users(id),
+            current_flow VARCHAR,
+            pending_action VARCHAR,
+            flow_data JSONB,
+            expires_at TIMESTAMP,
+            updated_at TIMESTAMP
+        )
+    """))
 
     # timers
-    op.create_table(
-        "timers",
-        sa.Column("id", sa.String(), primary_key=True),
-        sa.Column("user_id", sa.String(), sa.ForeignKey("users.id"), nullable=False),
-        sa.Column("type", sa.String(), nullable=False),
-        sa.Column("expires_at", sa.DateTime(), nullable=False),
-        sa.Column("payload", postgresql.JSON(), nullable=True),
-        sa.Column("fired", sa.Boolean(), default=False),
-        sa.Column("created_at", sa.DateTime(), nullable=True),
-    )
+    conn.execute(sa.text("""
+        CREATE TABLE IF NOT EXISTS timers (
+            id VARCHAR PRIMARY KEY,
+            user_id VARCHAR NOT NULL REFERENCES users(id),
+            type VARCHAR NOT NULL,
+            expires_at TIMESTAMP NOT NULL,
+            payload JSONB,
+            fired BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP
+        )
+    """))
 
     # events
-    op.create_table(
-        "events",
-        sa.Column("id", sa.String(), primary_key=True),
-        sa.Column("user_id", sa.String(), sa.ForeignKey("users.id"), nullable=False),
-        sa.Column("type", sa.String(), nullable=False),
-        sa.Column("payload", postgresql.JSON(), nullable=True),
-        sa.Column("created_at", sa.DateTime(), nullable=True),
-    )
+    conn.execute(sa.text("""
+        CREATE TABLE IF NOT EXISTS events (
+            id VARCHAR PRIMARY KEY,
+            user_id VARCHAR NOT NULL REFERENCES users(id),
+            type VARCHAR NOT NULL,
+            payload JSONB,
+            created_at TIMESTAMP
+        )
+    """))
 
     # partner_checks
-    op.create_table(
-        "partner_checks",
-        sa.Column("id", sa.String(), primary_key=True),
-        sa.Column("user_id", sa.String(), sa.ForeignKey("users.id"), nullable=False),
-        sa.Column("triggered_at", sa.DateTime(), nullable=True),
-        sa.Column("acknowledged", sa.Boolean(), default=False),
-    )
+    conn.execute(sa.text("""
+        CREATE TABLE IF NOT EXISTS partner_checks (
+            id VARCHAR PRIMARY KEY,
+            user_id VARCHAR NOT NULL REFERENCES users(id),
+            triggered_at TIMESTAMP,
+            acknowledged BOOLEAN DEFAULT FALSE
+        )
+    """))
 
 
 def downgrade() -> None:
-    op.drop_table("partner_checks")
-    op.drop_table("events")
-    op.drop_table("timers")
-    op.drop_table("user_states")
-    op.drop_table("urges")
-    op.drop_table("reflections")
-    op.drop_table("checkins")
-    op.drop_table("partnerships")
-    op.drop_table("temp_signups")
-    op.drop_table("users")
-
-    op.execute("DROP TYPE IF EXISTS checkintypeenum")
-    op.execute("DROP TYPE IF EXISTS checkinresponseenum")
-    op.execute("DROP TYPE IF EXISTS partnershipstatusenum")
-    op.execute("DROP TYPE IF EXISTS genderenum")
-    op.execute("DROP TYPE IF EXISTS roleenum")
+    conn = op.get_bind()
+    conn.execute(sa.text("DROP TABLE IF EXISTS partner_checks"))
+    conn.execute(sa.text("DROP TABLE IF EXISTS events"))
+    conn.execute(sa.text("DROP TABLE IF EXISTS timers"))
+    conn.execute(sa.text("DROP TABLE IF EXISTS user_states"))
+    conn.execute(sa.text("DROP TABLE IF EXISTS urges"))
+    conn.execute(sa.text("DROP TABLE IF EXISTS reflections"))
+    conn.execute(sa.text("DROP TABLE IF EXISTS checkins"))
+    conn.execute(sa.text("DROP TABLE IF EXISTS partnerships"))
+    conn.execute(sa.text("DROP TABLE IF EXISTS temp_signups"))
+    conn.execute(sa.text("DROP TABLE IF EXISTS users"))
+    conn.execute(sa.text("DROP TYPE IF EXISTS checkintypeenum"))
+    conn.execute(sa.text("DROP TYPE IF EXISTS checkinresponseenum"))
+    conn.execute(sa.text("DROP TYPE IF EXISTS partnershipstatusenum"))
+    conn.execute(sa.text("DROP TYPE IF EXISTS genderenum"))
+    conn.execute(sa.text("DROP TYPE IF EXISTS roleenum"))
