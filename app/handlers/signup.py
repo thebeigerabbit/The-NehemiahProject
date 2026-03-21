@@ -9,6 +9,7 @@ from app.database import get_db
 from app.services.user_service import (
     get_temp_signup, upsert_temp_signup, delete_temp_signup,
     get_user_by_telegram_id, username_exists, create_user,
+    activate_user,
 )
 from app.handlers.base import reply
 import logging
@@ -32,115 +33,133 @@ async def handle_signup_step(update: Update, context: ContextTypes.DEFAULT_TYPE)
         ts = get_temp_signup(db, telegram_id)
         if not ts:
             return False
-
         step = ts.step
 
-        # ââ Step 1: Username ââââââââââââââââââââââââââââââââââââââââââââââââââ
-        if step == "username":
-            if not USERNAME_RE.match(text):
-                await reply(update,
-                    "â Invalid username.\n\n"
-                    "â¢ 3â30 characters\n"
-                    "â¢ Letters, numbers, underscores only\n"
-                    "â¢ No spaces\n\n"
-                    "Please try again:"
-                )
-                return True
+    # ââ Step 1: Username ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    if step == "username":
+        if not USERNAME_RE.match(text):
+            await reply(update,
+                "Invalid username.\n\n"
+                "- 3 to 30 characters\n"
+                "- Letters, numbers, underscores only\n"
+                "- No spaces\n\n"
+                "Please try again:"
+            )
+            return True
 
+        with get_db() as db:
             if username_exists(db, text):
-                await reply(update,
-                    "â That username is already taken. Please choose another:"
-                )
+                await reply(update, "That username is already taken. Please choose another:")
                 return True
-
             upsert_temp_signup(db, telegram_id, step="role", username=text)
+
+        await reply(update,
+            f"Username '{text}' is available!\n\n"
+            "Step 2 of 3 - Choose your role:\n\n"
+            "USER    - You will be held accountable\n"
+            "PARTNER - You hold others accountable\n"
+            "BOTH    - Both roles\n\n"
+            "Reply with: USER, PARTNER, or BOTH"
+        )
+        return True
+
+    # ââ Step 2: Role ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    if step == "role":
+        role = text.upper()
+        if role not in VALID_ROLES:
             await reply(update,
-                f"â Username *{text}* is available!\n\n"
-                "ð *Step 2 of 3 â Choose your role:*\n\n"
-                "â¢ `USER` â You will be held accountable\n"
-                "â¢ `PARTNER` â You hold others accountable\n"
-                "â¢ `BOTH` â Both roles\n\n"
-                "Reply with: `USER`, `PARTNER`, or `BOTH`"
+                "Invalid role. Please reply with exactly one of:\n"
+                "USER, PARTNER, or BOTH"
             )
             return True
 
-        # ââ Step 2: Role ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-        elif step == "role":
-            role = text.upper()
-            if role not in VALID_ROLES:
-                await reply(update,
-                    "â Invalid role. Please reply with exactly one of:\n"
-                    "`USER`, `PARTNER`, or `BOTH`"
-                )
-                return True
-
+        with get_db() as db:
             upsert_temp_signup(db, telegram_id, step="gender", role=role)
+
+        await reply(update,
+            f"Role set to {role}.\n\n"
+            "Step 3 of 3 - Your gender:\n\n"
+            "This is required for same-gender accountability matching.\n\n"
+            "Reply with: MALE or FEMALE"
+        )
+        return True
+
+    # ââ Step 3: Gender ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    if step == "gender":
+        gender = text.upper()
+        if gender not in VALID_GENDERS:
             await reply(update,
-                f"â Role set to *{role}*.\n\n"
-                "ð *Step 3 of 3 â Your gender:*\n\n"
-                "â ï¸ This is required for same-gender accountability matching.\n\n"
-                "Reply with: `MALE` or `FEMALE`"
+                "Invalid input. Please reply with exactly:\n"
+                "MALE or FEMALE"
             )
             return True
 
-        # ââ Step 3: Gender ââââââââââââââââââââââââââââââââââââââââââââââââââââ
-        elif step == "gender":
-            gender = text.upper()
-            if gender not in VALID_GENDERS:
-                await reply(update,
-                    "â Invalid gender. Please reply with exactly:\n"
-                    "`MALE` or `FEMALE`"
-                )
-                return True
-
-            # Create the user
-            existing = get_user_by_telegram_id(db, telegram_id)
-            if existing:
+        result = {}
+        with get_db() as db:
+            ts = get_temp_signup(db, telegram_id)
+            if not ts:
+                result = {"error": "Your signup session expired. Please use /signup to start again."}
+            elif not ts.role or not ts.username:
                 delete_temp_signup(db, telegram_id)
-                await reply(update, "â Account already exists. Use /start to continue.")
-                return True
-
-            if username_exists(db, ts.username):
+                result = {"error": "Signup session was incomplete. Please use /signup to start again."}
+            elif get_user_by_telegram_id(db, telegram_id):
+                delete_temp_signup(db, telegram_id)
+                result = {"error": "An account already exists for your Telegram. Use /start to continue."}
+            elif username_exists(db, ts.username):
+                saved_username = ts.username
                 delete_temp_signup(db, telegram_id)
                 upsert_temp_signup(db, telegram_id, step="username")
-                await reply(update,
-                    "â That username was taken while you were signing up.\n"
-                    "Please send a new username:"
-                )
-                return True
-
-            user = create_user(
-                db,
-                telegram_id=telegram_id,
-                username=ts.username,
-                role=ts.role,
-                gender=gender,
-            )
-            delete_temp_signup(db, telegram_id)
-
-            if ts.role == "PARTNER":
-                # Partners don't need to add users â activate immediately
-                from app.services.user_service import activate_user
-                activate_user(db, user)
-                await reply(update,
-                    f"ð *Account Created!*\n\n"
-                    f"Username: *{user.username}*\n"
-                    f"Role: *{ts.role}*\n"
-                    f"Your ID: `{user.id}`\n\n"
-                    f"â Your account is active as a partner. Share your username and ID with those who want to add you.\n\n"
-                    f"Type /help to see all commands."
-                )
+                result = {"error": f"Sorry, the username '{saved_username}' was just taken. Please send a new username:"}
             else:
-                await reply(update,
-                    f"ð *Account Created!*\n\n"
-                    f"Username: *{user.username}*\n"
-                    f"Role: *{ts.role}*\n"
-                    f"Your ID: `{user.id}`\n\n"
-                    f"â³ *Next Step Required:*\n"
-                    f"You must add at least 1 accountability partner before your account is activated.\n\n"
-                    f"Use: `/add_partner <username> <partner_id>`\n\n"
-                    f"Ask your partner to share their username and account ID."
+                user = create_user(
+                    db,
+                    telegram_id=telegram_id,
+                    username=ts.username,
+                    role=ts.role,
+                    gender=gender,
                 )
+                saved_role = ts.role
+                delete_temp_signup(db, telegram_id)
+
+                if saved_role == "PARTNER":
+                    activate_user(db, user)
+
+                result = {
+                    "success": True,
+                    "role": saved_role,
+                    "username": user.username,
+                    "user_id": user.id,
+                }
+
+        if "error" in result:
+            await reply(update, result["error"])
             return True
+
+        role = result["role"]
+        username = result["username"]
+        user_id = result["user_id"]
+
+        if role == "PARTNER":
+            await reply(update,
+                "Account created successfully!\n\n"
+                f"Username: {username}\n"
+                f"Role: {role}\n"
+                f"Your account ID: {user_id}\n\n"
+                "Your account is now active as a partner.\n"
+                "Share your username and account ID with anyone who wants to add you.\n\n"
+                "Type /help to see all commands."
+            )
+        else:
+            await reply(update,
+                "Account created successfully!\n\n"
+                f"Username: {username}\n"
+                f"Role: {role}\n"
+                f"Your account ID: {user_id}\n\n"
+                "Next step required:\n"
+                "You must add at least 1 accountability partner before your account is activated.\n\n"
+                "Use: /add_partner <partner_username> <partner_id>\n\n"
+                "Ask your partner to share their username and account ID with you."
+            )
+        return True
 
     return False
