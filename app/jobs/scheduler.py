@@ -33,7 +33,7 @@ from app.services.notification_service import (
 )
 from app.models import (
     Timer, PartnerCheck, CheckinTypeEnum, User, UserState,
-    Checkin, CheckinResponseEnum,
+    Checkin, CheckinResponseEnum, Urge,
 )
 from app.utils.time_utils import minutes_from_now, utc_naive, now_utc
 from app.utils.event_logger import log_event
@@ -41,6 +41,7 @@ from app.utils.event_logger import log_event
 logger = logging.getLogger(__name__)
 
 _bot = None  # set at startup
+_scheduler = None  # set at startup
 
 
 def get_scheduler() -> AsyncIOScheduler:
@@ -65,9 +66,10 @@ def get_scheduler() -> AsyncIOScheduler:
 
 
 def init_scheduler(bot) -> AsyncIOScheduler:
-    global _bot
+    global _bot, _scheduler
     _bot = bot
     scheduler = get_scheduler()
+    _scheduler = scheduler
 
     #  Daily check-in at 20:00 SAST 
     scheduler.add_job(
@@ -106,6 +108,17 @@ def init_scheduler(bot) -> AsyncIOScheduler:
         trigger="interval",
         minutes=1,
         id="process_timers",
+        replace_existing=True,
+    )
+
+    #  Urge pattern analysis: daily at 12:00 SAST 
+    scheduler.add_job(
+        urge_pattern_nudge_job,
+        trigger="cron",
+        hour=12,
+        minute=0,
+        timezone=TIMEZONE_STR,
+        id="urge_pattern_nudge",
         replace_existing=True,
     )
 
@@ -394,3 +407,159 @@ async def _recover_user(db, user: User, now: datetime):
             # Reschedule reflection timeout
             create_timer(db, user.id, "reflection_timeout",
                          minutes_from_now(REFLECTION_TIMEOUT_MINUTES * 6), {})
+
+
+#  Job: Daily Urge Pattern Analysis & Proactive Nudge 
+
+async def urge_pattern_nudge_job():
+    """
+    Runs once daily at noon SAST.
+    For each active user:
+      - If they have urge history, compute the average local hour urges occur.
+        Schedule a personalised alert to fire at that hour with tailored advice.
+      - If no urge history, send an encouraging message now.
+    """
+    logger.info("Running urge_pattern_nudge_job")
+
+    ADVICE = [
+        "Get up and move — go for a walk, do push-ups, change your environment immediately.",
+        "Call or text a trusted friend right now. Do not isolate yourself.",
+        "Read your 'why'. Write it down if you haven't: why do you want to be free?",
+        "Use the 5-4-3-2-1 grounding technique: name 5 things you see, 4 you can touch, 3 you hear.",
+        "Pray or meditate for 5 minutes. Focus on your values, not the urge.",
+        "Cold shower. It is a proven pattern interrupt and it works.",
+        "Write out exactly what you are feeling right now. Naming the emotion weakens it.",
+        "Urges peak and pass in 15–20 minutes. You can outlast it — ride the wave.",
+    ]
+
+    AVOID = [
+        "Do not be alone with a device. Give your phone to someone or leave the room.",
+        "Do not lie in bed or sit idle — inactivity feeds the urge.",
+        "Do not convince yourself 'just this once'. That lie has cost you before.",
+        "Do not wait for the feeling to pass on its own without acting — act first.",
+        "Do not close the accountability app. Open it and report the urge instead.",
+    ]
+
+    ENCOURAGEMENTS = [
+        "Every day you stay clean is a victory. Keep going — your future self is grateful.",
+        "Discipline today is freedom tomorrow. You are building something unbreakable.",
+        "You signed up for this because you wanted to change. That desire is still in you.",
+        "Accountability is not weakness — it is the strategy of the strongest people.",
+        "Your partners believe in you. More importantly, you made a commitment to yourself.",
+        "Clean streaks are built one ordinary day at a time. Today is one of those days.",
+        "The fact that you are in this programme means you are already ahead of most people.",
+        "Character is built in the quiet moments no one sees. Stay strong today.",
+    ]
+
+    with get_db() as db:
+        users = get_all_active_users(db)
+
+        for user in users:
+            try:
+                urges = db.query(Urge).filter(
+                    Urge.user_id == user.id
+                ).order_by(Urge.created_at.desc()).limit(90).all()
+
+                if not urges:
+                    # No urge history — send encouragement now
+                    msg = (
+                        "Daily Encouragement\n\n"
+                        f"{random.choice(ENCOURAGEMENTS)}\n\n"
+                        "Use /urge anytime you feel tempted. That is what it is there for."
+                    )
+                    try:
+                        await _bot.send_message(
+                            chat_id=user.telegram_id,
+                            text=h(msg),
+                            parse_mode=ParseMode.HTML,
+                        )
+                    except Exception as e:
+                        logger.error(f"Failed to send encouragement to {user.username}: {e}")
+                    continue
+
+                # Compute average local hour urges occur
+                tz = pytz.timezone("Africa/Johannesburg")
+                local_hours = []
+                for urge in urges:
+                    utc_dt = pytz.utc.localize(urge.created_at)
+                    local_dt = utc_dt.astimezone(tz)
+                    local_hours.append(local_dt.hour + local_dt.minute / 60.0)
+
+                avg_hour = sum(local_hours) / len(local_hours)
+                nudge_hour = int(avg_hour)
+                nudge_minute = int((avg_hour - nudge_hour) * 60)
+
+                # Round to nearest 5-minute slot
+                nudge_minute = round(nudge_minute / 5) * 5
+                if nudge_minute == 60:
+                    nudge_minute = 0
+                    nudge_hour = (nudge_hour + 1) % 24
+
+                # Count urges by day-of-week for context
+                from collections import Counter
+                day_counts = Counter()
+                for urge in urges:
+                    utc_dt = pytz.utc.localize(urge.created_at)
+                    local_dt = utc_dt.astimezone(tz)
+                    day_counts[local_dt.strftime("%A")] += 1
+                worst_day = day_counts.most_common(1)[0][0] if day_counts else None
+
+                count = len(urges)
+                period = "last 90 reports" if count >= 90 else f"last {count} report{'s' if count > 1 else ''}"
+
+                do_tip = random.choice(ADVICE)
+                avoid_tip = random.choice(AVOID)
+
+                msg = (
+                    f"Urge Alert — Your Pattern\n\n"
+                    f"Based on your {period}, you tend to experience urges around "
+                    f"{nudge_hour:02d}:{nudge_minute:02d}."
+                )
+                if worst_day:
+                    msg += f" {worst_day}s are your most difficult day."
+                msg += (
+                    f"\n\nThis message is your advance warning.\n\n"
+                    f"DO THIS NOW:\n{do_tip}\n\n"
+                    f"AVOID THIS:\n{avoid_tip}\n\n"
+                    f"You have overcome this before. You can do it again."
+                )
+
+                # Schedule the nudge at the user's average urge hour today
+                now_local = datetime.now(tz)
+                nudge_today = now_local.replace(
+                    hour=nudge_hour, minute=nudge_minute, second=0, microsecond=0
+                )
+
+                # If that time has already passed today, skip (will fire tomorrow via cron)
+                if nudge_today <= now_local:
+                    continue
+
+                nudge_utc = nudge_today.astimezone(pytz.utc).replace(tzinfo=None)
+
+                # Schedule a one-off job for this user today
+                job_id = f"urge_nudge_{user.id}"
+                from apscheduler.triggers.date import DateTrigger
+
+                _scheduler.add_job(
+                    _send_urge_nudge,
+                    trigger=DateTrigger(run_date=nudge_utc),
+                    args=[user.telegram_id, msg],
+                    id=job_id,
+                    replace_existing=True,
+                )
+                logger.info(f"Scheduled urge nudge for {user.username} at {nudge_hour:02d}:{nudge_minute:02d} SAST")
+
+            except Exception as e:
+                logger.error(f"urge_pattern_nudge_job error for user {getattr(user, 'username', '?')}: {e}")
+
+
+async def _send_urge_nudge(telegram_id: str, msg: str):
+    """Fires at the scheduled time to deliver the urge pattern alert."""
+    try:
+        await _bot.send_message(
+            chat_id=telegram_id,
+            text=h(msg),
+            parse_mode=ParseMode.HTML,
+        )
+    except Exception as e:
+        logger.error(f"Failed to send urge nudge to {telegram_id}: {e}")
