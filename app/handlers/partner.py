@@ -58,18 +58,30 @@ async def add_partner_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
             await reply(update, " You cannot add yourself as a partner.")
             return
 
-        # Check not already partnered
+        # Check not already partnered in THIS direction
         existing = get_partnership(db, user.id, partner.id)
-        existing_rev = get_partnership(db, partner.id, user.id)
-        if existing or existing_rev:
-            p = existing or existing_rev
-            if p.status == PartnershipStatusEnum.ACCEPTED:
+        if existing:
+            if existing.status == PartnershipStatusEnum.ACCEPTED:
                 await reply(update, f" You are already partnered with {partner.username}.")
-            elif p.status == PartnershipStatusEnum.PENDING:
-                await reply(update, f"⏳ A partnership request with {partner.username} is already pending.")
+            elif existing.status == PartnershipStatusEnum.PENDING:
+                await reply(update, f"A partnership request to {partner.username} is already pending.")
             else:
-                await reply(update, f"ℹ A previous request with {partner.username} was rejected. Contact them directly.")
+                await reply(update, f"A previous request to {partner.username} was rejected. Contact them directly.")
             return
+
+        # Check reverse direction — only block if both directions already exist (mutual max)
+        existing_rev = get_partnership(db, partner.id, user.id)
+        if existing_rev:
+            if existing_rev.status == PartnershipStatusEnum.PENDING:
+                await reply(update,
+                    f"{partner.username} has already sent YOU a partnership request.\n\n"
+                    f"Accept it with /accept_partner instead of creating a duplicate."
+                )
+                return
+            if existing_rev.status == PartnershipStatusEnum.ACCEPTED:
+                # Reverse exists and is accepted — allow this direction too (mutual accountability)
+                # but only if neither user already has a mutual link in this direction
+                pass  # fall through to create the forward partnership
 
         # Gender check — defer final check to acceptance, but warn upfront
         if user.gender != partner.gender:
@@ -171,6 +183,25 @@ async def accept_partner_handler(update: Update, context: ContextTypes.DEFAULT_T
                             f" Account Activated!\n\n"
                             f"{user.username} has accepted your partnership request.\n"
                             f"Your account is now active. Daily check-ins begin at 20:00 SAST.\n\n"
+                            f"Type /help for all commands."
+                        ),
+                        parse_mode=ParseMode.HTML,
+                    )
+                except Exception:
+                    pass
+
+        # Also activate acceptor if they are BOTH role and this is their first accepted partner
+        if user.role.value == "BOTH" and not user.is_active:
+            if count_accepted_partners(db, user.id) >= 1:
+                activate_user(db, user)
+                try:
+                    await update.get_bot().send_message(
+                        chat_id=user.telegram_id,
+                        text=(
+                            f" Your Account Is Now Active!\n\n"
+                            f"You accepted {requester.username}'s partnership request, "
+                            f"which has activated your own account.\n"
+                            f"Daily check-ins begin at 20:00 SAST.\n\n"
                             f"Type /help for all commands."
                         ),
                         parse_mode=ParseMode.HTML,
