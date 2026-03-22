@@ -87,7 +87,8 @@ async def add_partner_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
 
         # Notify partner
         await send_partnership_request(
-            update.get_bot(), user, partner.telegram_id, p.id
+            update.get_bot(), user, partner.telegram_id, p.id,
+            p.short_id or p.id[:4].upper()
         )
 
     await reply(update,
@@ -108,7 +109,7 @@ async def accept_partner_handler(update: Update, context: ContextTypes.DEFAULT_T
         await reply(update, " Usage: /accept_partner PARTNERSHIP_ID")
         return
 
-    partnership_id = args[0].strip()
+    partnership_short_id = args[0].strip().upper()
 
     with get_db() as db:
         user = get_user_by_telegram_id(db, telegram_id)
@@ -116,7 +117,7 @@ async def accept_partner_handler(update: Update, context: ContextTypes.DEFAULT_T
             await reply(update, " You need an account first. Use /start.")
             return
 
-        p = db.query(Partnership).filter_by(id=partnership_id).first()
+        p = db.query(Partnership).filter_by(short_id=partnership_short_id).first()
         if not p:
             await reply(update, " Partnership request not found.")
             return
@@ -195,7 +196,7 @@ async def reject_partner_handler(update: Update, context: ContextTypes.DEFAULT_T
         await reply(update, " Usage: /reject_partner PARTNERSHIP_ID")
         return
 
-    partnership_id = args[0].strip()
+    partnership_short_id = args[0].strip().upper()
 
     with get_db() as db:
         user = get_user_by_telegram_id(db, telegram_id)
@@ -203,7 +204,7 @@ async def reject_partner_handler(update: Update, context: ContextTypes.DEFAULT_T
             await reply(update, " You need an account first. Use /start.")
             return
 
-        p = db.query(Partnership).filter_by(id=partnership_id).first()
+        p = db.query(Partnership).filter_by(short_id=partnership_short_id).first()
         if not p:
             await reply(update, " Partnership request not found.")
             return

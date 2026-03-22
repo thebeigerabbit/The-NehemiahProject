@@ -24,10 +24,18 @@ def gen_short_id():
 def upgrade() -> None:
     conn = op.get_bind()
 
-    # Add short_id column if it doesn't exist
+    # Add short_id column to users if it doesn't exist
     try:
         conn.execute(sa.text(
             "ALTER TABLE users ADD COLUMN short_id VARCHAR(8) UNIQUE"
+        ))
+    except Exception:
+        pass  # Column may already exist
+
+    # Add short_id column to partnerships if it doesn't exist
+    try:
+        conn.execute(sa.text(
+            "ALTER TABLE partnerships ADD COLUMN short_id VARCHAR(8) UNIQUE"
         ))
     except Exception:
         pass  # Column may already exist
@@ -42,6 +50,20 @@ def upgrade() -> None:
                 conn.execute(sa.text(
                     "UPDATE users SET short_id = :sid WHERE id = :uid"
                 ), {"sid": sid, "uid": row[0]})
+                break
+            except Exception:
+                continue
+
+    # Backfill any existing partnerships that don't have a short_id
+    result = conn.execute(sa.text("SELECT id FROM partnerships WHERE short_id IS NULL"))
+    rows = result.fetchall()
+    for row in rows:
+        for _ in range(20):
+            sid = gen_short_id()
+            try:
+                conn.execute(sa.text(
+                    "UPDATE partnerships SET short_id = :sid WHERE id = :pid"
+                ), {"sid": sid, "pid": row[0]})
                 break
             except Exception:
                 continue

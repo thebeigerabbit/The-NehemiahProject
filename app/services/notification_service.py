@@ -98,12 +98,12 @@ async def send_partner_check_notification(bot: Bot, user: User, partners: list[U
         await send_safe(bot, partner.telegram_id, msg)
 
 
-async def send_partnership_request(bot: Bot, requester: User, partner_telegram_id: str, partnership_id: str):
+async def send_partnership_request(bot: Bot, requester: User, partner_telegram_id: str, partnership_id: str, partnership_short_id: str):
     msg = (
         f" Partnership Request\n\n"
         f"{requester.username} wants to add you as their accountability partner.\n\n"
-        f"To accept, reply:\n/accept_partner {partnership_id}\n\n"
-        f"To reject, reply:\n/reject_partner {partnership_id}\n\n"
+        f"To accept, reply:\n/accept_partner {partnership_short_id}\n\n"
+        f"To reject, reply:\n/reject_partner {partnership_short_id}\n\n"
         f" Note: You must be the same gender as the person you're partnering with."
     )
     await send_safe(bot, partner_telegram_id, msg)

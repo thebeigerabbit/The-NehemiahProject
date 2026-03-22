@@ -93,6 +93,7 @@ class Partnership(Base):
     __tablename__ = "partnerships"
 
     id = Column(String(36), primary_key=True, default=gen_uuid)
+    short_id = Column(String(8), unique=True, nullable=True, default=gen_short_id)
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     partner_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     status = Column(Enum(PartnershipStatusEnum), default=PartnershipStatusEnum.PENDING)
