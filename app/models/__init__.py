@@ -14,6 +14,14 @@ def gen_uuid():
     return str(uuid.uuid4())
 
 
+def gen_short_id():
+    """Generate a memorable 4-character uppercase alphanumeric ID."""
+    import random
+    import string
+    chars = string.ascii_uppercase + string.digits
+    return ''.join(random.choices(chars, k=4))
+
+
 # ─── Enums ────────────────────────────────────────────────────────────────────
 
 class RoleEnum(str, enum.Enum):
@@ -50,6 +58,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(String(36), primary_key=True, default=gen_uuid)
+    short_id = Column(String(8), unique=True, nullable=True, default=gen_short_id)
     telegram_id = Column(String, unique=True, nullable=False, index=True)
     username = Column(String, unique=True, nullable=False)
     role = Column(Enum(RoleEnum), nullable=False, default=RoleEnum.USER)

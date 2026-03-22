@@ -19,10 +19,10 @@ from telegram.constants import ParseMode
 logger = logging.getLogger(__name__)
 
 
-@require_auth
 async def add_partner_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Usage: /add_partner USERNAME PARTNER_ID
+    Accessible to inactive users so they can get their first partner.
     """
     telegram_id = str(update.effective_user.id)
     args = context.args
@@ -31,15 +31,18 @@ async def add_partner_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         await reply(update,
             " Invalid Format\n\n"
             "Usage: /add_partner USERNAME PARTNER_ID\n\n"
-            "Ask your partner to share their username and account ID."
+            "Ask your partner to share their username and 4-character account ID."
         )
         return
 
     partner_username = args[0].strip()
-    partner_id_input = args[1].strip()
+    partner_id_input = args[1].strip().upper()
 
     with get_db() as db:
         user = get_user_by_telegram_id(db, telegram_id)
+        if not user:
+            await reply(update, " You need an account first. Use /start.")
+            return
 
         # Validate partner exists
         partner = get_user_by_username(db, partner_username)
@@ -47,8 +50,8 @@ async def add_partner_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
             await reply(update, f"No user found with username: {partner_username}")
             return
 
-        if partner.id != partner_id_input:
-            await reply(update, " Partner ID does not match. Please double-check.")
+        if not partner.short_id or partner.short_id.upper() != partner_id_input:
+            await reply(update, " Partner ID does not match. Please double-check the 4-character code.")
             return
 
         if partner.id == user.id:

@@ -137,6 +137,7 @@ async def handle_signup_step(update: Update, context: ContextTypes.DEFAULT_TYPE)
                     "role": saved_role,
                     "username": user.username,
                     "user_id": user.id,
+                    "short_id": user.short_id or user.id[:4].upper(),
                 }
 
         if "error" in result:
@@ -146,7 +147,8 @@ async def handle_signup_step(update: Update, context: ContextTypes.DEFAULT_TYPE)
         role = result["role"]
         username = result["username"]
         user_id = result["user_id"]
-        display_id = user_id.replace("-", "")
+        short_id = result.get("short_id", user_id[:4].upper())
+        display_id = short_id
 
         if role == "PARTNER":
             await reply(update,
@@ -155,7 +157,7 @@ async def handle_signup_step(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 f"Role: {role}\n"
                 f"Your account ID: {display_id}\n\n"
                 "Your account is now active as a partner.\n"
-                "Share your username and account ID with anyone who wants to add you.\n\n"
+                "Share your username and 4-character account ID with anyone who wants to add you.\n\n"
                 "Type /help to see all commands."
             )
         else:
@@ -167,7 +169,7 @@ async def handle_signup_step(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 "Next step required:\n"
                 "You must add at least 1 accountability partner before your account is activated.\n\n"
                 "Use: /add_partner PARTNER_USERNAME PARTNER_ID\n\n"
-                "Ask your partner to share their username and account ID with you."
+                "Ask your partner to share their username and 4-character account ID with you."
             )
         return True
 
