@@ -20,6 +20,8 @@ from app.handlers.base import reply, require_auth, require_no_pending_reflection
 from app.models import CheckinTypeEnum
 from config.settings import MAX_URGES_PER_HOUR
 import logging
+from html import escape as h
+from telegram.constants import ParseMode
 
 logger = logging.getLogger(__name__)
 
@@ -70,10 +72,10 @@ async def urge_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         urge_id = urge.id
 
     await reply(update,
-        f" Urge Recorded â Help is Coming\n\n"
+        f" Urge Recorded — Help is Coming\n\n"
         f"Your partners have been notified. You are not alone.\n\n"
         f" Coping Strategy:\n{strategy}\n\n"
-        f"â± I will check in with you in 15 minutes.\n"
+        f"⏱ I will check in with you in 15 minutes.\n"
         f"Hang in there. You can do this. "
     )
 
@@ -103,7 +105,7 @@ async def urge_followup_callback(update: Update, context: ContextTypes.DEFAULT_T
             return
 
         if urge.resolved:
-            await query.edit_message_text("â¹ This urge has already been resolved.")
+            await query.edit_message_text("ℹ This urge has already been resolved.")
             return
 
         resolve_urge(db, urge_id, resolution)
@@ -130,7 +132,7 @@ async def urge_followup_callback(update: Update, context: ContextTypes.DEFAULT_T
             await notify_partners_urge(query.get_bot(), user, partners, f"Still tempted: {urge.reason}")
             from app.utils.messages import random_coping_strategy
             await query.edit_message_text(
-                f" Still fighting â that's the spirit!\n\n"
+                f" Still fighting — that's the spirit!\n\n"
                 f"Your partners have been notified again.\n\n"
                 f" New Strategy: {random_coping_strategy()}\n\n"
                 f"Another check-in will come in 15 minutes. Hold on.",
@@ -160,10 +162,11 @@ async def send_urge_followup(bot, telegram_id: str, urge_id: str, username: str)
         await bot.send_message(
             chat_id=telegram_id,
             text=(
-                "â° 15-Minute Follow-Up\n\n"
+                "⏰ 15-Minute Follow-Up\n\n"
                 "How are you doing right now?"
             ),
             reply_markup=keyboard,
+            parse_mode=ParseMode.HTML,
         )
     except Exception as e:
         logger.error(f"Failed to send urge follow-up to {telegram_id}: {e}")

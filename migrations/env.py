@@ -4,12 +4,17 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 from alembic import context
 
+# Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Read DATABASE_URL directly from environment — do NOT import config.settings
+# here because that module requires TELEGRAM_BOT_TOKEN which is not needed
+# for migrations and may not be set in all environments.
 DATABASE_URL = os.environ.get("DATABASE_URL")
 if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL environment variable is not set.")
 
+# Railway injects postgres:// but SQLAlchemy requires postgresql://
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 

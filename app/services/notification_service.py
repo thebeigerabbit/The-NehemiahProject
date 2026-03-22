@@ -2,7 +2,9 @@
 Notification service. All methods are async and receive a bot instance.
 Separated from handlers to keep business logic testable.
 """
+from html import escape as h
 from telegram import Bot
+from telegram.constants import ParseMode
 from telegram.error import TelegramError
 from app.models import User
 from app.utils.time_utils import format_local
@@ -12,9 +14,15 @@ logger = logging.getLogger(__name__)
 
 
 async def send_safe(bot: Bot, chat_id: str, text: str, **kwargs):
-    """Send message, log errors without raising."""
+    """Send message using HTML parse mode, log errors without raising."""
     try:
-        await bot.send_message(chat_id=chat_id, text=text, **kwargs)
+        kwargs.pop("parse_mode", None)
+        await bot.send_message(
+            chat_id=chat_id,
+            text=h(text),
+            parse_mode=ParseMode.HTML,
+            **kwargs
+        )
     except TelegramError as e:
         logger.error(f"Failed to send message to {chat_id}: {e}")
 
@@ -33,7 +41,7 @@ async def notify_partners_urge(bot: Bot, user: User, partners: list[User], reaso
     msg = (
         f" Urge Alert\n\n"
         f"{user.username} is reporting an urge right now.\n"
-        f"Reason: _{reason}_\n\n"
+        f"Reason: {reason}\n\n"
         f"Please check in with them immediately. "
     )
     for partner in partners:

@@ -113,11 +113,11 @@ def validate_reflection_fields(trigger: str, failure: str, prevention: str) -> l
     fields = [("trigger", trigger), ("failure", failure), ("prevention", prevention)]
     for name, value in fields:
         if not value or not value.strip():
-            errors.append(f"â¢ `{name}` field is missing or empty.")
+            errors.append(f"• `{name}` field is missing or empty.")
         elif len(value.strip()) < MIN_REFLECTION_LENGTH:
-            errors.append(f"â¢ `{name}` is too short (min {MIN_REFLECTION_LENGTH} chars).")
+            errors.append(f"• `{name}` is too short (min {MIN_REFLECTION_LENGTH} chars).")
         elif len(value.strip()) > MAX_TEXT_LENGTH:
-            errors.append(f"â¢ `{name}` is too long (max {MAX_TEXT_LENGTH} chars).")
+            errors.append(f"• `{name}` is too long (max {MAX_TEXT_LENGTH} chars).")
     return errors
 
 

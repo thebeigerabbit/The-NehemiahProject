@@ -2,7 +2,9 @@
 Handler utilities: decorators, guards, common patterns.
 """
 from functools import wraps
+from html import escape as html_escape
 from telegram import Update
+from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 from app.database import get_db
 from app.services.user_service import get_user_by_telegram_id, user_has_pending_reflection
@@ -20,13 +22,17 @@ def require_auth(func):
             user = get_user_by_telegram_id(db, telegram_id)
             if not user:
                 await update.message.reply_text(
-                    "❌ You don't have an account. Use /start to get started."
+                    html_escape("You don't have an account. Use /start to get started."),
+                    parse_mode=ParseMode.HTML
                 )
                 return
             if not user.is_active:
                 await update.message.reply_text(
-                    "⏳ Your account is not yet active. You need at least one accepted accountability partner.\n"
-                    "Use /add_partner to link a partner."
+                    html_escape(
+                        "Your account is not yet active. You need at least one accepted accountability partner.\n"
+                        "Use /add_partner to link a partner."
+                    ),
+                    parse_mode=ParseMode.HTML
                 )
                 return
         return await func(update, context)
@@ -42,10 +48,12 @@ def require_no_pending_reflection(func):
             user = get_user_by_telegram_id(db, telegram_id)
             if user and user_has_pending_reflection(db, user.id):
                 await update.message.reply_text(
-                    "🚫 *Action Blocked*\n\n"
-                    "You must complete your reflection before using other commands.\n\n"
-                    "Use `/reflect` to submit your reflection now.",
-                    parse_mode="Markdown"
+                    html_escape(
+                        "Action Blocked\n\n"
+                        "You must complete your reflection before using other commands.\n\n"
+                        "Use /reflect to submit your reflection now."
+                    ),
+                    parse_mode=ParseMode.HTML
                 )
                 return
         return await func(update, context)
@@ -53,5 +61,15 @@ def require_no_pending_reflection(func):
 
 
 async def reply(update: Update, text: str, **kwargs):
-    kwargs.setdefault("parse_mode", "Markdown")
-    await update.message.reply_text(text, **kwargs)
+    """Send a plain text reply using HTML parse mode with escaping.
+    
+    This is the ONLY safe approach — HTML-escape all content so
+    no markdown, underscores, asterisks, or angle brackets can
+    ever trigger a Telegram entity parsing error.
+    """
+    kwargs.pop("parse_mode", None)
+    await update.message.reply_text(
+        html_escape(text),
+        parse_mode=ParseMode.HTML,
+        **kwargs
+    )

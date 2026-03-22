@@ -3,6 +3,8 @@ APScheduler setup with PostgreSQL job store.
 All jobs are persistent and idempotent.
 """
 import logging
+from html import escape as h
+from telegram.constants import ParseMode
 import random
 from datetime import datetime, timedelta
 
@@ -151,6 +153,7 @@ async def daily_checkin_job():
                         "• /yes — I had a failure (relapse)\n"
                         "• /no — I had a clean day "
                     ),
+                    parse_mode=ParseMode.HTML,
                 )
             except Exception as e:
                 logger.error(f"Error sending checkin to {user.username}: {e}")
@@ -233,6 +236,7 @@ async def fire_timer(db, timer: Timer):
                     "• /no — Clean day \n\n"
                     "You have ~110 minutes before your partners are notified."
                 ),
+                parse_mode=ParseMode.HTML,
             )
 
     #  Checkin Timeout → notify partners 
@@ -253,6 +257,7 @@ async def fire_timer(db, timer: Timer):
                     "You did not respond to tonight's check-in within 2 hours.\n"
                     "Your accountability partners have been notified."
                 ),
+                parse_mode=ParseMode.HTML,
             )
 
     #  Reflection Timeout → notify partners 
@@ -271,6 +276,7 @@ async def fire_timer(db, timer: Timer):
                     "Please submit it now:\n"
                     "```\n/reflect\ntrigger: ...\nfailure: ...\nprevention: ...\n```"
                 ),
+                parse_mode=ParseMode.HTML,
             )
 
     #  Urge Follow-Up 
@@ -347,6 +353,7 @@ async def _recover_user(db, user: User, now: datetime):
                     "• /yes — I had a failure\n"
                     "• /no — Clean day"
                 ),
+                parse_mode=ParseMode.HTML,
             )
         except Exception as e:
             logger.error(f"Failed to send recovery checkin to {user.username}: {e}")
@@ -379,6 +386,7 @@ async def _recover_user(db, user: User, now: datetime):
                         "Please submit:\n"
                         "```\n/reflect\ntrigger: ...\nfailure: ...\nprevention: ...\n```"
                     ),
+                    parse_mode=ParseMode.HTML,
                 )
             except Exception as e:
                 logger.error(f"Failed to re-prompt reflection for {user.username}: {e}")

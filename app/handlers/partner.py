@@ -13,6 +13,8 @@ from app.services.notification_service import send_partnership_request
 from app.handlers.base import reply, require_auth
 from app.models import PartnershipStatusEnum, Partnership
 import logging
+from html import escape as h
+from telegram.constants import ParseMode
 
 logger = logging.getLogger(__name__)
 
@@ -146,6 +148,7 @@ async def accept_partner_handler(update: Update, context: ContextTypes.DEFAULT_T
                         f" Partnership Rejected — Gender Mismatch\n\n"
                         f"{user.username} could not accept your request due to a gender mismatch."
                     ),
+                    parse_mode=ParseMode.HTML,
                 )
             except Exception:
                 pass
@@ -166,6 +169,7 @@ async def accept_partner_handler(update: Update, context: ContextTypes.DEFAULT_T
                             f"Your account is now active. Daily check-ins begin at 20:00 SAST.\n\n"
                             f"Type /help for all commands."
                         ),
+                        parse_mode=ParseMode.HTML,
                     )
                 except Exception:
                     pass
@@ -220,6 +224,7 @@ async def reject_partner_handler(update: Update, context: ContextTypes.DEFAULT_T
                         f" Partnership Request Rejected\n\n"
                         f"{user.username} has declined your partnership request."
                     ),
+                    parse_mode=ParseMode.HTML,
                 )
             except Exception:
                 pass
