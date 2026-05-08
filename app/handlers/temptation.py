@@ -13,7 +13,7 @@ from app.services.checkin_service import (
     get_pending_checkin, create_checkin_record, process_yes_response, process_no_response,
 )
 from app.services.notification_service import (
-    notify_partners_urge, notify_partners_temptation_spam, notify_partners_failure,
+    notify_partners_temptation, notify_partners_temptation_spam, notify_partners_failure,
 )
 from app.utils.messages import random_coping_strategy
 from app.handlers.base import reply, require_auth, require_no_pending_reflection
@@ -66,7 +66,7 @@ async def temptation_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
             return
 
         temptation = create_temptation(db, user, reason)
-        await notify_partners_urge(update.get_bot(), user, partners, reason)
+        await notify_partners_temptation(update.get_bot(), user, partners, reason)
 
         strategy = random_coping_strategy()
         temptation_id = temptation.id
@@ -129,7 +129,7 @@ async def temptation_followup_callback(update: Update, context: ContextTypes.DEF
             # Re-trigger temptation flow (notify partners again, schedule another follow-up)
             from app.services.temptation_service import create_temptation as re_urge
             new_urge = re_urge(db, user, f"[Continued] {temptation.reason}")
-            await notify_partners_urge(query.get_bot(), user, partners, f"Still tempted: {temptation.reason}")
+            await notify_partners_temptation(query.get_bot(), user, partners, f"Still tempted: {temptation.reason}")
             from app.utils.messages import random_coping_strategy
             await query.edit_message_text(
                 f" Still fighting — that's the spirit!\n\n"
