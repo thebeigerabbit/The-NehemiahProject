@@ -6,8 +6,8 @@ from telegram.ext import ContextTypes, CallbackQueryHandler
 from app.database import get_db
 from app.services.user_service import get_user_by_telegram_id, get_accepted_partners
 from app.services.temptation_service import (
-    validate_temptation_reason, count_recent_urges, create_urge,
-    resolve_urge, parse_temptation_command, get_urge,
+    validate_temptation_reason, count_recent_temptations, create_temptation,
+    resolve_temptation, parse_temptation_command, get_temptation,
 )
 from app.services.checkin_service import (
     get_pending_checkin, create_checkin_record, process_yes_response, process_no_response,
@@ -54,7 +54,7 @@ async def temptation_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
         partners = get_accepted_partners(db, user.id)
 
         # Anti-spam check
-        recent_count = count_recent_urges(db, user.id)
+        recent_count = count_recent_temptations(db, user.id)
         if recent_count >= MAX_URGES_PER_HOUR:
             await notify_partners_temptation_spam(update.get_bot(), user, partners)
             await reply(update,
@@ -65,7 +65,7 @@ async def temptation_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
             )
             return
 
-        temptation = create_urge(db, user, reason)
+        temptation = create_temptation(db, user, reason)
         await notify_partners_urge(update.get_bot(), user, partners, reason)
 
         strategy = random_coping_strategy()
@@ -99,7 +99,7 @@ async def temptation_followup_callback(update: Update, context: ContextTypes.DEF
         if not user:
             return
 
-        temptation = get_urge(db, temptation_id)
+        temptation = get_temptation(db, temptation_id)
         if not temptation or urge.user_id != user.id:
             await query.edit_message_text(" This follow-up is no longer valid.")
             return
@@ -108,7 +108,7 @@ async def temptation_followup_callback(update: Update, context: ContextTypes.DEF
             await query.edit_message_text("ℹ This temptation has already been resolved.")
             return
 
-        resolve_urge(db, temptation_id, resolution)
+        resolve_temptation(db, temptation_id, resolution)
         partners = get_accepted_partners(db, user.id)
 
         if resolution == "fallen":
@@ -127,7 +127,7 @@ async def temptation_followup_callback(update: Update, context: ContextTypes.DEF
 
         elif resolution == "still_tempted":
             # Re-trigger temptation flow (notify partners again, schedule another follow-up)
-            from app.services.temptation_service import create_urge as re_urge
+            from app.services.temptation_service import create_temptation as re_urge
             new_urge = re_urge(db, user, f"[Continued] {temptation.reason}")
             await notify_partners_urge(query.get_bot(), user, partners, f"Still tempted: {temptation.reason}")
             from app.utils.messages import random_coping_strategy
