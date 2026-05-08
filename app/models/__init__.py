@@ -73,7 +73,7 @@ class User(Base):
     # relationships
     checkins = relationship("Checkin", back_populates="user", foreign_keys="Checkin.user_id")
     reflections = relationship("Reflection", back_populates="user")
-    urges = relationship("Temptation", back_populates="user")
+    temptations = relationship("Temptation", back_populates="user")
     state = relationship("UserState", back_populates="user", uselist=False)
     timers = relationship("Timer", back_populates="user")
     events = relationship("Event", back_populates="user")
