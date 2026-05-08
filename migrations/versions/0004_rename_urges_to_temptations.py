@@ -8,7 +8,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = '0004_rename_urges_to_temptations'
-down_revision = '0003_fix_enums_partnership_shortid'
+down_revision = '0003_fix_enums'
 branch_labels = None
 depends_on = None
 
