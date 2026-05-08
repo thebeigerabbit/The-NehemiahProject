@@ -73,7 +73,7 @@ class User(Base):
     # relationships
     checkins = relationship("Checkin", back_populates="user", foreign_keys="Checkin.user_id")
     reflections = relationship("Reflection", back_populates="user")
-    urges = relationship("Urge", back_populates="user")
+    urges = relationship("Temptation", back_populates="user")
     state = relationship("UserState", back_populates="user", uselist=False)
     timers = relationship("Timer", back_populates="user")
     events = relationship("Event", back_populates="user")
@@ -132,8 +132,8 @@ class Reflection(Base):
     user = relationship("User", back_populates="reflections")
 
 
-class Urge(Base):
-    __tablename__ = "urges"
+class Temptation(Base):
+    __tablename__ = "temptations"
 
     id = Column(String(36), primary_key=True, default=gen_uuid)
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
@@ -143,7 +143,7 @@ class Urge(Base):
     resolution = Column(String, nullable=True)  # 'fallen', 'still_tempted', 'not_tempted'
     followup_sent = Column(Boolean, default=False)
 
-    user = relationship("User", back_populates="urges")
+    user = relationship("User", back_populates="temptations")
 
 
 class UserState(Base):

@@ -19,7 +19,7 @@ COPING_STRATEGIES = [
     "Read your 'why'. Write it now if you have not: why do you want to be free?",
     "Pray or meditate for 5 minutes. Breathe deeply and focus on your values.",
     "Write out exactly what you are feeling. Naming the emotion weakens it.",
-    "Ride the wave. Urges peak and pass in 15 to 20 minutes. You can outlast it.",
+    "Ride the wave. Temptations peak and pass in 15 to 20 minutes. You can outlast it.",
     "Put on uplifting music and change your environment immediately.",
     "Drink a full glass of water slowly and focus entirely on the sensation.",
 ]

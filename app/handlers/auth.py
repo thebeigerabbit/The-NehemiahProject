@@ -20,7 +20,7 @@ This bot helps you stay accountable through:
 - Daily check-ins at 20:00 SAST
 - Partner accountability system
 - Progress tracking and reports
-- Urge reporting and coping support
+- Temptation reporting and coping support
 
 Important: This system uses same-gender accountability only.
 

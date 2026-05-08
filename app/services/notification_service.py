@@ -37,10 +37,10 @@ async def notify_partners_failure(bot: Bot, user: User, partners: list[User]):
         await send_safe(bot, partner.telegram_id, msg)
 
 
-async def notify_partners_urge(bot: Bot, user: User, partners: list[User], reason: str):
+async def notify_partners_temptation(bot: Bot, user: User, partners: list[User], reason: str):
     msg = (
-        f" Urge Alert\n\n"
-        f"{user.username} is reporting an urge right now.\n"
+        f" Temptation Alert\n\n"
+        f"{user.username} is reporting a temptation right now.\n"
         f"Reason: {reason}\n\n"
         f"Please check in with them immediately. "
     )
@@ -78,10 +78,10 @@ async def notify_partners_anomaly(bot: Bot, user: User, partners: list[User]):
         await send_safe(bot, partner.telegram_id, msg)
 
 
-async def notify_partners_urge_spam(bot: Bot, user: User, partners: list[User]):
+async def notify_partners_temptation_spam(bot: Bot, user: User, partners: list[User]):
     msg = (
-        f" Urge Spam Alert\n\n"
-        f"{user.username} has submitted more than 3 urge reports in the past hour.\n"
+        f" Temptation Spam Alert\n\n"
+        f"{user.username} has submitted more than 3 temptation reports in the past hour.\n"
         f"Please reach out — this may indicate a serious struggle."
     )
     for partner in partners:

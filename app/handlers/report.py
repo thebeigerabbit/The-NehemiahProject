@@ -30,8 +30,8 @@ failure: what happened
 prevention: what you will do differently
 Each field: 20 to 500 characters. Be specific.
 
---- Urge Reporting ---
-/urge reason: your reason here
+--- Temptation Reporting ---
+/tempted reason: your reason here
 - Reason must be at least 10 characters
 - Max 3 urges per hour
 - Partners notified immediately
@@ -79,7 +79,7 @@ async def report_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Current streak:       {streak_display}\n"
         f"---\n"
         f"Last failure:         {last_failure}\n"
-        f"Urges reported:       {stats['urge_count']}\n"
+        f"Temptations reported:       {stats['temptation_count']}\n"
         f"Reflection rate:      {stats['reflection_compliance']}%\n"
         f"Missed check-ins:     {stats['missed_checkins']}\n"
         f"---\n"

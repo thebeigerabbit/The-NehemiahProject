@@ -33,7 +33,7 @@ from app.services.notification_service import (
 )
 from app.models import (
     Timer, PartnerCheck, CheckinTypeEnum, User, UserState,
-    Checkin, CheckinResponseEnum, Urge,
+    Checkin, CheckinResponseEnum, Temptation,
 )
 from app.utils.time_utils import minutes_from_now, utc_naive, now_utc
 from app.utils.event_logger import log_event
@@ -111,14 +111,14 @@ def init_scheduler(bot) -> AsyncIOScheduler:
         replace_existing=True,
     )
 
-    #  Urge pattern analysis: daily at 12:00 SAST 
+    #  Temptation pattern analysis: daily at 12:00 SAST 
     scheduler.add_job(
-        urge_pattern_nudge_job,
+        temptation_pattern_nudge_job,
         trigger="cron",
         hour=12,
         minute=0,
         timezone=TIMEZONE_STR,
-        id="urge_pattern_nudge",
+        id="temptation_pattern_nudge",
         replace_existing=True,
     )
 
@@ -292,10 +292,10 @@ async def fire_timer(db, timer: Timer):
                 parse_mode=ParseMode.HTML,
             )
 
-    #  Urge Follow-Up 
-    elif ttype == "urge_followup":
-        urge_id = payload.get("urge_id")
-        from app.handlers.urge import send_urge_followup
+    #  Temptation Follow-Up 
+    elif ttype == "temptation_followup":
+        temptation_id = payload.get("temptation_id")
+        from app.handlers.temptation import send_urge_followup
         await send_urge_followup(_bot, user.telegram_id, urge_id, user.username)
 
 
@@ -411,7 +411,7 @@ async def _recover_user(db, user: User, now: datetime):
 
 #  Job: Daily Urge Pattern Analysis & Proactive Nudge 
 
-async def urge_pattern_nudge_job():
+async def temptation_pattern_nudge_job():
     """
     Runs once daily at noon SAST.
     For each active user:
@@ -419,7 +419,7 @@ async def urge_pattern_nudge_job():
         Schedule a personalised alert to fire at that hour with tailored advice.
       - If no urge history, send an encouraging message now.
     """
-    logger.info("Running urge_pattern_nudge_job")
+    logger.info("Running temptation_pattern_nudge_job")
 
     ADVICE = [
         "Get up and move — go for a walk, do push-ups, change your environment immediately.",
@@ -440,41 +440,18 @@ async def urge_pattern_nudge_job():
         "Do not close the accountability app. Open it and report the urge instead.",
     ]
 
-    ENCOURAGEMENTS = [
-        "Every day you stay clean is a victory. Keep going — your future self is grateful.",
-        "Discipline today is freedom tomorrow. You are building something unbreakable.",
-        "You signed up for this because you wanted to change. That desire is still in you.",
-        "Accountability is not weakness — it is the strategy of the strongest people.",
-        "Your partners believe in you. More importantly, you made a commitment to yourself.",
-        "Clean streaks are built one ordinary day at a time. Today is one of those days.",
-        "The fact that you are in this programme means you are already ahead of most people.",
-        "Character is built in the quiet moments no one sees. Stay strong today.",
-    ]
 
     with get_db() as db:
         users = get_all_active_users(db)
 
         for user in users:
             try:
-                urges = db.query(Urge).filter(
-                    Urge.user_id == user.id
-                ).order_by(Urge.created_at.desc()).limit(90).all()
+                urges = db.query(Temptation).filter(
+                    Temptation.user_id == user.id
+                ).order_by(Temptation.created_at.desc()).limit(90).all()
 
                 if not urges:
-                    # No urge history — send encouragement now
-                    msg = (
-                        "Daily Encouragement\n\n"
-                        f"{random.choice(ENCOURAGEMENTS)}\n\n"
-                        "Use /urge anytime you feel tempted. That is what it is there for."
-                    )
-                    try:
-                        await _bot.send_message(
-                            chat_id=user.telegram_id,
-                            text=h(msg),
-                            parse_mode=ParseMode.HTML,
-                        )
-                    except Exception as e:
-                        logger.error(f"Failed to send encouragement to {user.username}: {e}")
+                    # No temptation history yet — skip, nothing to warn about
                     continue
 
                 # Compute average local hour urges occur
@@ -511,7 +488,7 @@ async def urge_pattern_nudge_job():
                 avoid_tip = random.choice(AVOID)
 
                 msg = (
-                    f"Urge Alert — Your Pattern\n\n"
+                    f"Temptation Alert — Your Pattern\n\n"
                     f"Based on your {period}, you tend to experience urges around "
                     f"{nudge_hour:02d}:{nudge_minute:02d}."
                 )
@@ -537,11 +514,11 @@ async def urge_pattern_nudge_job():
                 nudge_utc = nudge_today.astimezone(pytz.utc).replace(tzinfo=None)
 
                 # Schedule a one-off job for this user today
-                job_id = f"urge_nudge_{user.id}"
+                job_id = f"temptation_nudge_{user.id}"
                 from apscheduler.triggers.date import DateTrigger
 
                 _scheduler.add_job(
-                    _send_urge_nudge,
+                    _send_temptation_nudge,
                     trigger=DateTrigger(run_date=nudge_utc),
                     args=[user.telegram_id, msg],
                     id=job_id,
@@ -550,10 +527,10 @@ async def urge_pattern_nudge_job():
                 logger.info(f"Scheduled urge nudge for {user.username} at {nudge_hour:02d}:{nudge_minute:02d} SAST")
 
             except Exception as e:
-                logger.error(f"urge_pattern_nudge_job error for user {getattr(user, 'username', '?')}: {e}")
+                logger.error(f"temptation_pattern_nudge_job error for user {getattr(user, 'username', '?')}: {e}")
 
 
-async def _send_urge_nudge(telegram_id: str, msg: str):
+async def _send_temptation_nudge(telegram_id: str, msg: str):
     """Fires at the scheduled time to deliver the urge pattern alert."""
     try:
         await _bot.send_message(

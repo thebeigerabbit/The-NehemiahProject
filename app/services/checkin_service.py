@@ -69,12 +69,19 @@ def process_yes_response(db: Session, user: User, checkin: Checkin) -> dict:
 
 
 def process_no_response(db: Session, user: User, checkin: Checkin) -> dict:
-    """Handle a NO (success) response."""
+    """Handle a NO (success) response. Streak = days since last failure."""
     checkin.response = CheckinResponseEnum.NO
     checkin.responded_at = datetime.utcnow()
     checkin.valid = True
 
-    user.success_streak = (user.success_streak or 0) + 1
+    # Compute streak as days since last failure (not a counter)
+    if user.last_failure_at:
+        delta = datetime.utcnow() - user.last_failure_at
+        user.success_streak = delta.days
+    else:
+        # No failure ever recorded — use days since account creation
+        delta = datetime.utcnow() - user.created_at
+        user.success_streak = delta.days
 
     cancel_timers_of_type(db, user.id, "checkin_reminder")
     cancel_timers_of_type(db, user.id, "checkin_timeout")
@@ -168,13 +175,13 @@ def parse_reflect_command(text: str) -> dict | None:
 
 def check_anomaly(db: Session, user: User) -> bool:
     """Return True if anomaly detected: high NO streak + recent urges."""
-    from app.models import Urge
+    from app.models import Temptation
     from config.settings import ANOMALY_NO_STREAK_THRESHOLD
     if (user.success_streak or 0) >= ANOMALY_NO_STREAK_THRESHOLD:
         recent_urge_cutoff = datetime.utcnow() - timedelta(days=7)
-        urge_count = db.query(Urge).filter(
-            Urge.user_id == user.id,
-            Urge.created_at >= recent_urge_cutoff,
+        urge_count = db.query(Temptation).filter(
+            Temptation.user_id == user.id,
+            Temptation.created_at >= recent_urge_cutoff,
         ).count()
         if urge_count > 0:
             return True
@@ -183,7 +190,7 @@ def check_anomaly(db: Session, user: User) -> bool:
 
 def get_stats(db: Session, user: User) -> dict:
     """Compute full report stats for a user."""
-    from app.models import Checkin, Urge, Reflection
+    from app.models import Checkin, Temptation, Reflection
 
     days_active = (datetime.utcnow() - user.created_at).days + 1
 
@@ -202,7 +209,8 @@ def get_stats(db: Session, user: User) -> dict:
         Checkin.valid == False  # noqa
     ).count()
 
-    urge_count = db.query(Urge).filter(Urge.user_id == user.id).count()
+    urge_count = db.query(Temptation).filter(Temptation.user_id == user.id).count()
+    temptation_count = urge_count
 
     total_yes = db.query(Checkin).filter(
         Checkin.user_id == user.id,
@@ -211,13 +219,19 @@ def get_stats(db: Session, user: User) -> dict:
     reflection_count = db.query(Reflection).filter(Reflection.user_id == user.id).count()
     reflection_compliance = (reflection_count / total_yes * 100) if total_yes > 0 else 100
 
+    # Streak = days since last failure (not a check-in counter)
+    if user.last_failure_at:
+        streak = (datetime.utcnow() - user.last_failure_at).days
+    else:
+        streak = (datetime.utcnow() - user.created_at).days if user.created_at else 0
+
     return {
         "days_active": days_active,
-        "streak": user.success_streak or 0,
+        "streak": streak,
         "total_failures": total_failures,
         "last_failure_at": user.last_failure_at,
         "success_rate": round(success_rate, 1),
-        "urge_count": urge_count,
+        "temptation_count": temptation_count,
         "reflection_compliance": round(reflection_compliance, 1),
         "missed_checkins": missed_checkins,
         "total_checkins": total_checkins,

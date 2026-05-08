@@ -19,7 +19,7 @@ from app.handlers import (
     add_partner_handler, accept_partner_handler, reject_partner_handler,
     yes_handler, no_handler,
     reflect_handler,
-    urge_handler, urge_followup_callback,
+    temptation_handler, temptation_followup_callback,
     report_handler, help_handler,
     message_dispatcher,
 )
@@ -57,15 +57,15 @@ def build_application() -> Application:
     # ── Reflection command ────────────────────────────────────────────────────
     app.add_handler(CommandHandler("reflect", reflect_handler))
 
-    # ── Urge command ──────────────────────────────────────────────────────────
-    app.add_handler(CommandHandler("urge", urge_handler))
+    # ── Temptation command ──────────────────────────────────────────────────────────
+    app.add_handler(CommandHandler("tempted", temptation_handler))
 
     # ── Info commands ─────────────────────────────────────────────────────────
     app.add_handler(CommandHandler("report", report_handler))
     app.add_handler(CommandHandler("help", help_handler))
 
     # ── Inline button callbacks ───────────────────────────────────────────────
-    app.add_handler(CallbackQueryHandler(urge_followup_callback, pattern=r"^urge_followup:"))
+    app.add_handler(CallbackQueryHandler(temptation_followup_callback, pattern=r"^temptation_followup:"))
 
     # ── Fallback: plain text messages ─────────────────────────────────────────
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_dispatcher))

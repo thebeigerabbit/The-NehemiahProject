@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, func
 from app.models import (
     User, TempSignup, UserState, Partnership, PartnershipStatusEnum,
-    RoleEnum, GenderEnum, Timer, Checkin, CheckinResponseEnum
+    RoleEnum, GenderEnum, Timer, Checkin, CheckinResponseEnum, CheckinTypeEnum
 )
 from app.utils.time_utils import utc_naive, now_utc
 from datetime import datetime, timedelta
@@ -179,20 +179,37 @@ def count_accepted_partners(db: Session, user_id: str) -> int:
 # ─── Checkin helpers ──────────────────────────────────────────────────────────
 
 def get_todays_checkin(db: Session, user_id: str) -> Checkin | None:
-    """Return the checkin within the last 24 hours for anti-cheating."""
-    cutoff = datetime.utcnow() - timedelta(hours=24)
+    """Return today's NORMAL check-in for the user (calendar day in SAST).
+    
+    Uses calendar day boundaries rather than a rolling 24-hour window so that
+    a RECOVERED_CHECKIN created in the morning never blocks the same evening's
+    regular check-in.
+    """
+    import pytz
+    tz = pytz.timezone("Africa/Johannesburg")
+    now_local = datetime.now(tz)
+    # Start of today in SAST, converted to UTC naive for DB comparison
+    start_of_day_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+    start_of_day_utc = start_of_day_local.astimezone(pytz.utc).replace(tzinfo=None)
+
     return db.query(Checkin).filter(
         Checkin.user_id == user_id,
-        Checkin.date >= cutoff,
+        Checkin.date >= start_of_day_utc,
+        Checkin.type == CheckinTypeEnum.NORMAL,
     ).order_by(Checkin.date.desc()).first()
 
 
 def get_pending_checkin(db: Session, user_id: str) -> Checkin | None:
-    """Return a checkin that has been sent but not responded to."""
-    cutoff = datetime.utcnow() - timedelta(hours=24)
+    """Return a checkin that has been sent but not responded to (any type, calendar day in SAST)."""
+    import pytz
+    tz = pytz.timezone("Africa/Johannesburg")
+    now_local = datetime.now(tz)
+    start_of_day_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+    start_of_day_utc = start_of_day_local.astimezone(pytz.utc).replace(tzinfo=None)
+
     return db.query(Checkin).filter(
         Checkin.user_id == user_id,
-        Checkin.date >= cutoff,
+        Checkin.date >= start_of_day_utc,
         Checkin.response == None,  # noqa
     ).order_by(Checkin.date.desc()).first()
 
