@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def validate_urge_reason(reason: str) -> str | None:
+def validate_temptation_reason(reason: str) -> str | None:
     """Return error string or None if valid."""
     if not reason or not reason.strip():
         return "Reason is required."
@@ -21,56 +21,56 @@ def validate_urge_reason(reason: str) -> str | None:
     return None
 
 
-def count_recent_urges(db: Session, user_id: str) -> int:
+def count_recent_temptations(db: Session, user_id: str) -> int:
     cutoff = datetime.utcnow() - timedelta(hours=1)
-    return db.query(Urge).filter(
+    return db.query(Temptation).filter(
         Temptation.user_id == user_id,
         Temptation.created_at >= cutoff,
     ).count()
 
 
-def create_urge(db: Session, user: User, reason: str) -> Urge:
+def create_temptation(db: Session, user: User, reason: str) -> Temptation:
     temptation = Temptation(
         user_id=user.id,
         reason=reason.strip(),
         created_at=datetime.utcnow(),
         resolved=False,
     )
-    db.add(urge)
+    db.add(temptation)
     db.flush()
 
     # Schedule 15-min follow-up timer
     create_timer(
-        db, user.id, "urge_followup",
+        db, user.id, "temptation_followup",
         expires_at=minutes_from_now(URGE_FOLLOWUP_MINUTES),
-        payload={"urge_id": temptation.id},
+        payload={"temptation_id": temptation.id},
     )
 
-    log_event(db, user.id, "URGE_REPORTED", {"reason": reason, "urge_id": temptation.id})
-    return urge
+    log_event(db, user.id, "TEMPTATION_REPORTED", {"reason": reason, "temptation_id": temptation.id})
+    return temptation
 
 
-def resolve_urge(db: Session, urge_id: str, resolution: str):
+def resolve_temptation(db: Session, urge_id: str, resolution: str):
     """resolution: 'fallen' | 'still_tempted' | 'not_tempted'"""
-    temptation = db.query(Urge).filter_by(id=urge_id).first()
-    if urge:
+    temptation = db.query(Temptation).filter_by(id=urge_id).first()
+    if temptation:
         temptation.resolved = True
         temptation.resolution = resolution
         db.flush()
 
 
-def get_urge(db: Session, urge_id: str) -> Urge | None:
-    return db.query(Urge).filter_by(id=urge_id).first()
+def get_temptation(db: Session, urge_id: str) -> Temptation | None:
+    return db.query(Temptation).filter_by(id=urge_id).first()
 
 
-def parse_urge_command(text: str) -> str | None:
+def parse_temptation_command(text: str) -> str | None:
     """
-    Parse /urge reason: <text>
+    Parse /tempted reason: <text>
     Returns the reason string or None if format invalid.
     """
     text = text.strip()
     # Remove the /urge prefix
-    if text.lower().startswith("/urge"):
+    if text.lower().startswith("/tempted"):
         rest = text[5:].strip()
     else:
         return None

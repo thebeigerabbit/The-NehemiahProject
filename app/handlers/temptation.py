@@ -58,7 +58,7 @@ async def temptation_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
         if recent_count >= MAX_URGES_PER_HOUR:
             await notify_partners_temptation_spam(update.get_bot(), user, partners)
             await reply(update,
-                f" Urge Limit Reached\n\n"
+                f" Temptation Limit Reached\n\n"
                 f"You've reported {MAX_URGES_PER_HOUR}+ urges in the past hour.\n"
                 f"Your partners have been notified of this.\n\n"
                 f"Please reach out to your partner directly for support right now."
@@ -72,7 +72,7 @@ async def temptation_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
         temptation_id = temptation.id
 
     await reply(update,
-        f" Urge Recorded — Help is Coming\n\n"
+        f" Temptation Recorded — Help is Coming\n\n"
         f"Your partners have been notified. You are not alone.\n\n"
         f" Coping Strategy:\n{strategy}\n\n"
         f"⏱ I will check in with you in 15 minutes.\n"
@@ -145,7 +145,7 @@ async def temptation_followup_callback(update: Update, context: ContextTypes.DEF
                 process_no_response(db, user, checkin)
             from app.utils.messages import random_encouragement
             await query.edit_message_text(
-                f" Urge defeated!\n\n"
+                f" Temptation defeated!\n\n"
                 f"You overcame the temptation. That is a real victory.\n\n"
                 f"{random_encouragement()}",
             )
