@@ -65,12 +65,12 @@ def get_temptation(db: Session, urge_id: str) -> Temptation | None:
 
 def parse_temptation_command(text: str) -> str | None:
     """
-    Parse /tempted reason: <text>
+    Parse /temptation reason: <text>
     Returns the reason string or None if format invalid.
     """
     text = text.strip()
     # Remove the /urge prefix
-    if text.lower().startswith("/tempted"):
+    if text.lower().startswith("/temptation"):
         rest = text[5:].strip()
     else:
         return None

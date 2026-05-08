@@ -58,7 +58,7 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("reflect", reflect_handler))
 
     # ── Temptation command ──────────────────────────────────────────────────────────
-    app.add_handler(CommandHandler("tempted", temptation_handler))
+    app.add_handler(CommandHandler("temptation", temptation_handler))
 
     # ── Info commands ─────────────────────────────────────────────────────────
     app.add_handler(CommandHandler("report", report_handler))
